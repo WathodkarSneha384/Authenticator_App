@@ -1,0 +1,35 @@
+# Dependencies
+node_modules/
+
+# Environment & secrets
+.env
+.env.local
+*.pem
+
+# Build / cache
+dist/
+build/
+.expo/
+.metro-health-check*
+
+# React Native
+mobile/android/app/build/
+mobile/android/.gradle/
+mobile/ios/Pods/
+mobile/ios/build/
+*.jks
+*.keystore
+
+# Backend data
+backend/data/
+*.db
+*.db-journal
+
+# OS & IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.log
+*.err
+npm-debug.log*
