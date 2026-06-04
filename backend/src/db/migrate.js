@@ -7,40 +7,43 @@ const dbPath = process.env.DB_PATH || './data/auth.db';
 const dir = path.dirname(dbPath);
 if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 
-const db = new DatabaseSync(dbPath);
+// Remove old DB so we start fresh with new schema
+if (fs.existsSync(dbPath)) fs.unlinkSync(dbPath);
 
+const db = new DatabaseSync(dbPath);
 db.exec(`PRAGMA journal_mode = WAL`);
 db.exec(`PRAGMA foreign_keys = ON`);
 
 db.exec(`
-  CREATE TABLE IF NOT EXISTS users (
-    id            TEXT PRIMARY KEY,
-    user_id       TEXT UNIQUE NOT NULL,
-    mobile        TEXT NOT NULL,
-    full_name     TEXT NOT NULL,
-    password_hash TEXT NOT NULL,
-    status        TEXT NOT NULL DEFAULT 'pending',
-    seed          TEXT,
-    created_at    INTEGER NOT NULL DEFAULT (unixepoch()),
-    approved_at   INTEGER
+  CREATE TABLE users (
+    id                 TEXT PRIMARY KEY,
+    user_id            TEXT UNIQUE NOT NULL,
+    mobile             TEXT,
+    status             TEXT NOT NULL DEFAULT 'otp_pending',
+    otp                TEXT,
+    otp_expires_at     INTEGER,
+    otp_attempts       INTEGER NOT NULL DEFAULT 0,
+    stage1_status      TEXT NOT NULL DEFAULT 'pending',
+    stage1_by          TEXT,
+    stage1_at          INTEGER,
+    stage2_status      TEXT NOT NULL DEFAULT 'pending',
+    stage2_by          TEXT,
+    stage2_at          INTEGER,
+    rejection_reason   TEXT,
+    registration_key   TEXT,
+    reg_key_expires_at INTEGER,
+    seed               TEXT,
+    created_at         INTEGER NOT NULL DEFAULT (unixepoch()),
+    registered_at      INTEGER
   );
 
-  CREATE TABLE IF NOT EXISTS audit_log (
-    id         INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id    TEXT NOT NULL,
-    action     TEXT NOT NULL,
-    detail     TEXT,
-    ip         TEXT,
-    ts         INTEGER NOT NULL DEFAULT (unixepoch())
-  );
-
-  CREATE TABLE IF NOT EXISTS sessions (
-    id         TEXT PRIMARY KEY,
-    user_id    TEXT NOT NULL,
-    token      TEXT NOT NULL,
-    expires_at INTEGER NOT NULL,
-    created_at INTEGER NOT NULL DEFAULT (unixepoch()),
-    FOREIGN KEY (user_id) REFERENCES users(id)
+  CREATE TABLE audit_log (
+    id       INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id  TEXT NOT NULL,
+    action   TEXT NOT NULL,
+    detail   TEXT,
+    ip       TEXT,
+    ts       INTEGER NOT NULL DEFAULT (unixepoch())
   );
 `);
 

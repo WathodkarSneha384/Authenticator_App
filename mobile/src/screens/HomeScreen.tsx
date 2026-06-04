@@ -1,54 +1,70 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, Alert } from 'react-native';
+/**
+ * RegistrationKeyScreen — Step 3
+ * After Stage II approval, user enters Registration Key received via SMS.
+ */
+import React, { useState } from 'react';
+import {
+  View, Text, TextInput, TouchableOpacity,
+  ActivityIndicator, Alert, KeyboardAvoidingView, Platform,
+} from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/RootNavigator';
+import { submitRegistrationKey } from '../services/api';
 import { useAuthStore } from '../store/authStore';
 
-type Props = { navigation: NativeStackNavigationProp<RootStackParamList, 'Home'> };
+type Props = { navigation: NativeStackNavigationProp<RootStackParamList, 'RegistrationKey'> };
 
-export default function HomeScreen({ navigation }: Props) {
-  const { userId, logout } = useAuthStore();
+export default function RegistrationKeyScreen({ navigation }: Props) {
+  const [key, setKey]         = useState('');
+  const [loading, setLoading] = useState(false);
+  const { userId, completeRegistration } = useAuthStore();
 
-  function confirmLogout() {
-    Alert.alert('Logout', 'Are you sure you want to logout?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Logout', style: 'destructive', onPress: logout },
-    ]);
+  async function handleSubmit() {
+    if (!key.trim()) { Alert.alert('Error', 'Please enter the Registration Key.'); return; }
+    setLoading(true);
+    try {
+      const res = await submitRegistrationKey(userId!, key.trim());
+      await completeRegistration(res.seed, res.userId);
+      // Navigation handled automatically by RootNavigator watching appStatus
+    } catch (e: any) {
+      Alert.alert('Error', e?.response?.data?.error || e.message);
+    } finally { setLoading(false); }
   }
 
   return (
-    <View className="flex-1 bg-surface px-6 pt-8">
-      <Text className="text-2xl font-bold text-primary">Welcome</Text>
-      <Text className="text-gray-500 mb-8">{userId ?? 'User'}</Text>
+    <KeyboardAvoidingView className="flex-1 bg-surface" behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <View className="flex-1 justify-center px-6">
+        <View className="items-center mb-10">
+          <View className="w-20 h-20 bg-success rounded-full items-center justify-center mb-4">
+            <Text className="text-white text-3xl">🔑</Text>
+          </View>
+          <Text className="text-2xl font-bold text-primary">Registration Key</Text>
+          <Text className="text-gray-500 mt-1 text-center">
+            Enter the Registration Key sent to your registered mobile number.
+          </Text>
+        </View>
 
-      <Card
-        title="Generate Token"
-        description="Get your 6-digit TOTP for CBS login or transaction"
-        color="bg-primary"
-        onPress={() => navigation.navigate('Token')}
-      />
+        <Text className="text-sm font-semibold text-gray-700 mb-1">Registration Key</Text>
+        <TextInput
+          className="bg-white border-2 border-gray-200 rounded-xl px-4 py-4 text-center text-2xl tracking-widest text-gray-900 mb-8"
+          value={key}
+          onChangeText={(t) => setKey(t.toUpperCase())}
+          placeholder="XXXX0000"
+          autoCapitalize="characters"
+          autoCorrect={false}
+          maxLength={8}
+        />
 
-      <Card
-        title="Transaction Verify"
-        description="Authorise insert / update / delete operations"
-        color="bg-accent"
-        onPress={() => navigation.navigate('Token')}
-      />
-
-      <View className="mt-auto mb-8">
-        <TouchableOpacity className="border border-danger rounded-xl py-3 items-center" onPress={confirmLogout}>
-          <Text className="text-danger font-semibold">Logout</Text>
+        <TouchableOpacity
+          className={`bg-success rounded-xl py-4 items-center ${loading ? 'opacity-60' : ''}`}
+          onPress={handleSubmit}
+          disabled={loading}
+        >
+          {loading
+            ? <ActivityIndicator color="#fff" />
+            : <Text className="text-white font-bold text-base">Complete Registration</Text>}
         </TouchableOpacity>
       </View>
-    </View>
-  );
-}
-
-function Card({ title, description, color, onPress }: { title: string; description: string; color: string; onPress: () => void }) {
-  return (
-    <TouchableOpacity className={`${color} rounded-2xl p-5 mb-4`} onPress={onPress}>
-      <Text className="text-white text-lg font-bold">{title}</Text>
-      <Text className="text-white opacity-80 mt-1 text-sm">{description}</Text>
-    </TouchableOpacity>
+    </KeyboardAvoidingView>
   );
 }

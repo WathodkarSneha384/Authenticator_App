@@ -1,8 +1,7 @@
 const router = require('express').Router();
 const ctrl = require('../controllers/admin.controller');
 
-// In production, protect these with an admin JWT middleware.
-// For now a simple API key check is included.
+// Simple admin key guard
 router.use((req, res, next) => {
   const key = req.headers['x-admin-key'];
   if (key !== process.env.ADMIN_KEY && process.env.NODE_ENV !== 'development') {
@@ -11,9 +10,15 @@ router.use((req, res, next) => {
   next();
 });
 
-router.get('/users/pending', ctrl.listPending);
-router.post('/users/:userId/approve', ctrl.approve);
-router.post('/users/:userId/reject', ctrl.reject);
-router.get('/audit', ctrl.auditLog);
+router.get('/stage1/pending',          ctrl.stage1Pending);
+router.post('/stage1/:userId/approve', ctrl.approveStage1);
+router.post('/stage1/:userId/reject',  ctrl.rejectStage1);
+
+router.get('/stage2/pending',          ctrl.stage2Pending);
+router.post('/stage2/:userId/approve', ctrl.approveStage2);
+router.post('/stage2/:userId/reject',  ctrl.rejectStage2);
+
+router.get('/users',                   ctrl.allUsers);
+router.get('/audit',                   ctrl.auditLog);
 
 module.exports = router;

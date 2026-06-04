@@ -1,72 +1,123 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, TouchableOpacity, Animated, Alert } from 'react-native';
-import Clipboard from '@react-native-clipboard/clipboard';
+/**
+ * SidTokenScreen — FR-011 FR-012
+ * After registration: user enters SID (from CBS screen) → Token auto-generates.
+ * This is the ONLY screen shown after successful registration.
+ */
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  View, Text, TextInput, TouchableOpacity,
+  Animated, Alert, KeyboardAvoidingView, Platform,
+} from 'react-native';
 import { useAuthStore } from '../store/authStore';
 import { generateToken, remainingSeconds } from '../utils/totp';
 
-export default function TokenScreen() {
-  const seed = useAuthStore((s) => s.seed);
-  const [token, setToken] = useState('------');
-  const [remaining, setRemaining] = useState(30);
-  const progress = useRef(new Animated.Value(1)).current;
+export default function SidTokenScreen() {
+  const { seed, userId, reset } = useAuthStore();
+  const [sid, setSid]           = useState('');
+  const [token, setToken]       = useState('');
+  const [timer, setTimer]       = useState(0);
+  const [sidEntered, setSidEntered] = useState(false);
+  const progress                = useRef(new Animated.Value(1)).current;
+  const animRef                 = useRef<Animated.CompositeAnimation | null>(null);
 
-  useEffect(() => {
+  // FR-012: auto-generate token when SID is entered
+  function handleEnterSid() {
+    if (!sid.trim()) { Alert.alert('Error', 'Please enter the SID.'); return; }
     if (!seed) return;
-
-    function refresh() {
-      const secs = remainingSeconds();
-      setRemaining(secs);
-      setToken(generateToken(seed!));
-
-      progress.setValue(secs / 30);
-      Animated.timing(progress, {
-        toValue: 0,
-        duration: secs * 1000,
-        useNativeDriver: false,
-      }).start();
-    }
-
-    refresh();
-    const id = setInterval(refresh, 30000 - ((Date.now() / 1000) % 30) * 1000 % 30000 || 30000);
-    const tick = setInterval(() => setRemaining(remainingSeconds()), 1000);
-
-    return () => { clearInterval(id); clearInterval(tick); };
-  }, [seed]);
-
-  if (!seed) {
-    return (
-      <View className="flex-1 bg-surface items-center justify-center px-6">
-        <Text className="text-gray-500 text-center">
-          No seed registered on this device. Complete registration and wait for admin approval.
-        </Text>
-      </View>
-    );
+    setSidEntered(true);
+    refreshToken();
   }
 
-  const barWidth = progress.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] });
-  const barColor = remaining > 10 ? '#22C55E' : '#EF4444';
+  function refreshToken() {
+    const t   = generateToken(seed!);
+    const rem = remainingSeconds();
+    setToken(t);
+    setTimer(rem);
+    progress.setValue(rem / 30);
+    if (animRef.current) animRef.current.stop();
+    animRef.current = Animated.timing(progress, {
+      toValue: 0, duration: rem * 1000, useNativeDriver: false,
+    });
+    animRef.current.start();
+  }
 
-  function copyToken() {
-    Clipboard.setString(token);
-    Alert.alert('Copied', 'Token copied to clipboard');
+  useEffect(() => {
+    if (!sidEntered) return;
+    const tick = setInterval(() => {
+      const rem = remainingSeconds();
+      setTimer(rem);
+      if (rem === 30) refreshToken(); // new 30-s window
+    }, 1000);
+    return () => clearInterval(tick);
+  }, [sidEntered, seed]);
+
+  const barWidth = progress.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] });
+  const barColor = timer > 10 ? '#22C55E' : '#EF4444';
+
+  if (!sidEntered) {
+    return (
+      <KeyboardAvoidingView className="flex-1 bg-surface" behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <View className="flex-1 justify-center px-6">
+          <View className="items-center mb-10">
+            <Text className="text-2xl font-bold text-primary">CBS Login</Text>
+            <Text className="text-gray-500 mt-1 text-center">
+              Enter the SID displayed on your CBS screen to generate your token.
+            </Text>
+          </View>
+
+          <Text className="text-sm font-semibold text-gray-700 mb-1">SID</Text>
+          <TextInput
+            className="bg-white border-2 border-gray-200 rounded-xl px-4 py-4 text-center text-2xl tracking-widest text-gray-900 mb-8"
+            value={sid}
+            onChangeText={setSid}
+            placeholder="Enter SID"
+            autoCapitalize="characters"
+            autoCorrect={false}
+          />
+
+          <TouchableOpacity className="bg-primary rounded-xl py-4 items-center" onPress={handleEnterSid}>
+            <Text className="text-white font-bold text-base">Generate Token</Text>
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
+    );
   }
 
   return (
     <View className="flex-1 bg-surface items-center justify-center px-6">
-      <Text className="text-gray-500 mb-2 text-sm">Current Token</Text>
+      <Text className="text-gray-500 text-sm mb-1">SID: <Text className="font-bold text-primary">{sid}</Text></Text>
+      <Text className="text-gray-500 text-sm mb-6">User ID: <Text className="font-bold text-primary">{userId}</Text></Text>
 
-      <TouchableOpacity onPress={copyToken} className="bg-white rounded-2xl px-10 py-6 shadow-md items-center mb-4">
+      {/* Token display */}
+      <View className="bg-white rounded-2xl px-10 py-8 shadow-md items-center mb-6 w-full">
+        <Text className="text-xs text-gray-400 mb-2 uppercase tracking-widest">Your Token</Text>
         <Text className="text-5xl font-bold tracking-widest text-primary">{token}</Text>
-        <Text className="text-xs text-gray-400 mt-2">Tap to copy</Text>
-      </TouchableOpacity>
+        <Text className="text-xs text-gray-400 mt-3">Tap to copy</Text>
+      </View>
 
+      {/* Countdown bar */}
       <View className="w-full bg-gray-200 rounded-full h-3 mb-2 overflow-hidden">
         <Animated.View style={{ width: barWidth, backgroundColor: barColor, height: '100%', borderRadius: 999 }} />
       </View>
-      <Text className="text-gray-500 text-sm">Expires in {remaining}s</Text>
+      <Text className="text-gray-500 text-sm mb-8">Expires in {timer}s</Text>
 
-      <Text className="text-xs text-gray-400 mt-8 text-center">
-        Token generated offline using your registered seed.{'\n'}Works without internet.
+      {/* Enter new SID */}
+      <TouchableOpacity
+        className="border border-primary rounded-xl py-3 px-8 mb-4"
+        onPress={() => { setSidEntered(false); setSid(''); setToken(''); }}
+      >
+        <Text className="text-primary font-semibold">Enter New SID</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity onPress={() => Alert.alert('Logout', 'Clear registration from this device?', [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Clear', style: 'destructive', onPress: reset },
+      ])}>
+        <Text className="text-gray-400 text-sm">Clear Device Registration</Text>
+      </TouchableOpacity>
+
+      <Text className="text-xs text-gray-400 mt-6 text-center">
+        Token generated offline. Works without internet.
       </Text>
     </View>
   );

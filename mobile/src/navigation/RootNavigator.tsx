@@ -3,48 +3,56 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useAuthStore } from '../store/authStore';
 
-import RegisterScreen from '../screens/RegisterScreen';
-import LoginScreen from '../screens/LoginScreen';
-import OtpVerifyScreen from '../screens/OtpVerifyScreen';
-import TokenScreen from '../screens/TokenScreen';
-import HomeScreen from '../screens/HomeScreen';
+import RegisterScreen       from '../screens/RegisterScreen';
+import OtpVerifyScreen      from '../screens/OtpVerifyScreen';   // SmsOtp
+import PendingScreen        from '../screens/PendingScreen';
+import HomeScreen           from '../screens/HomeScreen';         // RegistrationKey
+import TokenScreen          from '../screens/TokenScreen';        // SidToken
 
 export type RootStackParamList = {
-  Register: undefined;
-  Login: undefined;
-  OtpVerify: undefined;
-  Token: undefined;
-  Home: undefined;
+  Register:        undefined;
+  SmsOtp:          undefined;
+  Pending:         undefined;
+  RegistrationKey: undefined;
+  SidToken:        undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
+const HEADER = {
+  headerStyle: { backgroundColor: '#1B4F8A' },
+  headerTintColor: '#fff',
+  headerTitleStyle: { fontWeight: 'bold' as const },
+};
+
 export default function RootNavigator() {
-  const { isRegistered, sessionToken } = useAuthStore();
+  const { appStatus } = useAuthStore();
 
   return (
     <NavigationContainer>
-      <Stack.Navigator
-        screenOptions={{
-          headerStyle: { backgroundColor: '#1B4F8A' },
-          headerTintColor: '#fff',
-          headerTitleStyle: { fontWeight: 'bold' },
-        }}
-      >
-        {!isRegistered ? (
-          <Stack.Screen name="Register" component={RegisterScreen} options={{ title: 'Register Device' }} />
-        ) : !sessionToken ? (
+      <Stack.Navigator screenOptions={HEADER}>
+
+        {/* FR-011: After registration → SID/Token window only */}
+        {appStatus === 'registered' ? (
+          <Stack.Screen name="SidToken" component={TokenScreen} options={{ title: 'CBS Token', headerLeft: () => null }} />
+
+        ) : appStatus === 'stage2_approved' ? (
+          <Stack.Screen name="RegistrationKey" component={HomeScreen} options={{ title: 'Enter Registration Key', headerLeft: () => null }} />
+
+        ) : appStatus === 'submitted' || appStatus === 'stage1_approved' ? (
+          <Stack.Screen name="Pending" component={PendingScreen} options={{ title: 'Registration Pending', headerLeft: () => null }} />
+
+        ) : appStatus === 'otp_pending' ? (
           <>
-            <Stack.Screen name="Login" component={LoginScreen} options={{ title: 'CBS Login' }} />
-            <Stack.Screen name="OtpVerify" component={OtpVerifyScreen} options={{ title: 'Mobile Token Verify' }} />
-            <Stack.Screen name="Token" component={TokenScreen} options={{ title: 'Token' }} />
+            <Stack.Screen name="SmsOtp"   component={OtpVerifyScreen} options={{ title: 'Verify OTP' }} />
+            <Stack.Screen name="Pending"  component={PendingScreen}   options={{ title: 'Registration Pending' }} />
           </>
+
         ) : (
-          <>
-            <Stack.Screen name="Home" component={HomeScreen} options={{ title: 'CBS Authenticator' }} />
-            <Stack.Screen name="Token" component={TokenScreen} options={{ title: 'Generate Token' }} />
-          </>
+          /* unregistered — default */
+          <Stack.Screen name="Register" component={RegisterScreen} options={{ title: 'CBS Authenticator', headerLeft: () => null }} />
         )}
+
       </Stack.Navigator>
     </NavigationContainer>
   );
