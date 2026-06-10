@@ -109,28 +109,3 @@ const hashHex = CryptoJS.SHA256(seed).toString();
 export function remainingSeconds(): number {
   return STEP - (Math.floor(Date.now() / 1000) % STEP);
 }
-
-/**
- * Mirrors backend AuthenticatorServiceImpl.generateSID(userId, mobileNo):
- *   minute = epochSeconds / 60  (same value for the whole minute)
- *   seed   = userId + minute + mobileNo
- *   SID    = 100000 + (abs(first 4 bytes of SHA-256(seed) as signed int32) % 900000)
- *
- * mobileNo must be the EXACT same string the backend uses (same format).
- * minuteOffset = -1 lets us also check the previous minute window.
- */
-export function generateSID(userId: string, mobileNo: string, minuteOffset = 0): string {
-  const minute = Math.floor(Date.now() / 1000 / 60) + minuteOffset;
-  const seedStr = `${userId}${minute}${mobileNo}`;
-  const hashHex = CryptoJS.SHA256(seedStr).toString();
-
-  let hash = 0;
-  for (let i = 0; i < 4; i++) {
-    const byteVal = parseInt(hashHex.substring(i * 2, i * 2 + 2), 16);
-    hash = (hash << 8) | (byteVal & 0xff);
-  }
-  hash = hash | 0;          // signed 32-bit, same as Java int
-  hash = Math.abs(hash);
-
-  return String(100000 + (hash % 900000));
-}

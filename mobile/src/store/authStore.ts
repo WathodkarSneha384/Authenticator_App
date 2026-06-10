@@ -45,8 +45,8 @@ export const useAuthStore = create<AuthState>((set) => ({
   loadFromStorage: async () => {
     const seed   = await AsyncStorage.getItem('seed');
     const userId = await AsyncStorage.getItem('userId');
-    const status = (await AsyncStorage.getItem('status')) as AppStatus | null;
-    const mobile = await AsyncStorage.getItem('mobile');
+    const status = (await AsyncStorage.getItem('status')) as  | null;
+    const mobile =await AsyncStorage.getItem('mobiAppStatusle');
     console.log("appStatus: " + status);
     console.log("seed: "+seed);
     console.log("userId: "+userId);
