@@ -2,15 +2,17 @@
  * SmsOtpScreen — Step 2
  * 6-digit numeric OTP · 180 s countdown · Resend button  FR-005→FR-009
  */
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
   ActivityIndicator, Alert, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/RootNavigator';
-import { validateOtp, resendOtp } from '../services/api';
+import { validateOtp, resendOtp, validateUser } from '../services/api';
 import { useAuthStore } from '../store/authStore';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type Props = { navigation: NativeStackNavigationProp<RootStackParamList, 'SmsOtp'> };
 
@@ -23,8 +25,23 @@ export default function OtpVerifyScreen({ navigation }: Props) {
   const [timer, setTimer]         = useState(OTP_TTL);
   const timerRef                  = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const { userId, maskedMobile, setStatus } = useAuthStore();
+  const { setUserId: storeId,userId, maskedMobile, setStatus,setMaskedMobile ,completeRegistration} = useAuthStore();
+  
 
+   useLayoutEffect(() => {
+  navigation.setOptions({
+    title: '     OTP Verification',
+    headerLeft: () => (
+      <TouchableOpacity
+  onPress={() => navigation.navigate('Register')}
+  style={{ flexDirection: 'row', alignItems: 'center' }}
+>
+  <Ionicons name="arrow-back" size={24} color="#000" />
+  {/* <Text style={{ marginLeft: 4 }}>Back</Text> */}
+</TouchableOpacity>
+    ),
+  });
+}, [navigation]);
   /* ── countdown ── */
   useEffect(() => { startTimer(); return clearTimer; }, []);
 
@@ -47,26 +64,40 @@ export default function OtpVerifyScreen({ navigation }: Props) {
     setLoading(true);
     try {
       const res = await validateOtp(userId!, otp);
-
+      console.log('OTP Validation Result:', res);
       // Demo / fast-track: Stage II already approved → go straight to Registration Key
-      if (res.status === 'stage2_approved') {
-        setStatus('stage2_approved');
-        const key = (res as any).devRegKey as string | undefined;
-        Alert.alert(
-          'Registration Submitted ✓',
-          key
-            ? `Demo Registration Key:\n\n${key}\n\nYou will need this in the next step.`
-            : 'User Registration submitted successfully.\nYou will receive a Registration Key via SMS once approved.',
-          [{ text: 'Continue', onPress: () => navigation.navigate('RegistrationKey') }],
-        );
-        return;
-      }
+      // if (res.status === 'stage2_approved') {
+      //   setStatus('stage2_approved');
+      //   const key = (res as any).devRegKey as string | undefined;
+      //   Alert.alert(
+      //     'Registration Submitted ✓',
+      //     key
+      //       ? `Demo Registration Key:\n\n${key}\n\nYou will need this in the next step.`
+      //       : 'User Registration submitted successfully.\nYou will receive a Registration Key via SMS once approved.',
+      //     [{ text: 'Continue', onPress: () => navigation.navigate('RegistrationKey') }],
+      //   );
+      //   return;
+      // }
 
       // Normal flow: wait for approval
+      if(res?.status == '00'){
       setStatus('submitted');
+      //await completeRegistration(userId!,res?.mobile);
+      console.log("Mobile no stored : "+AsyncStorage.getItem('mobile'));
+
       Alert.alert('Submitted', 'User Registration submitted successfully.', [
-        { text: 'OK', onPress: () => navigation.navigate('Pending') },
+        { text: 'OK', onPress: () => navigation.navigate('Register') },
       ]);
+    }
+
+    if(res?.status == '422'){
+      setStatus('submitted');
+      Alert.alert('Submitted', res?.message || 'User is already registered.', [
+        { text: 'OK', onPress: () => navigation.navigate('Register') },
+      ]);
+    }
+   
+   
     } catch (e: any) {
       Alert.alert('Error', e?.response?.data?.error || e.message);
     } finally { setLoading(false); }
@@ -75,19 +106,34 @@ export default function OtpVerifyScreen({ navigation }: Props) {
   /* ── resend ── */
   async function handleResend() {
     setResending(true);
-    try {
-      const res = await resendOtp(userId!);
-      setOtp('');
-      startTimer();
-      Alert.alert(
-        'OTP Sent',
-        res.devOtp
-          ? `Demo OTP: ${res.devOtp}`
-          : 'A new OTP has been sent to your registered mobile number.',
-      );
-    } catch (e: any) {
-      Alert.alert('Error', e?.response?.data?.error || e.message);
-    } finally { setResending(false); }
+   try {
+         const res = await validateUser(userId!);
+         console.log('Validation Result:', res);
+   
+        //  if (res.status === 'registered') { storeId(userId!); setStatus('registered'); return; }
+        //  if (res.status === 'submitted' || res.status === 'stage1_approved') {
+        //    Alert.alert('Pending Approval', 'User ID Pending for Approval.'); return;
+        //  }
+        //  if (res.status === 'stage2_approved') {
+        //    storeId(userId!); setStatus('stage2_approved');
+        //    navigation.navigate('RegistrationKey'); return;
+        //  }
+        //  if (res.status === 'rejected') { Alert.alert('Rejected', res.message); return; }
+   
+         // OTP sent
+         storeId(userId!);
+         setStatus('otp_pending');
+         if (res.mobile) setMaskedMobile(res.mobile);
+   
+         if (res.devOtp) {
+           Alert.alert('DEV — OTP', `OTP: ${res.devOtp}`, [{ text: 'OK', onPress: () => navigation.navigate('SmsOtp') }]);
+         } else {
+           navigation.navigate('SmsOtp');
+         }
+       } catch (e: any) {
+         console.error('Validation Error:', e);
+         Alert.alert('Error', e?.response?.data?.error || e.message);
+       } finally { setResending(false); }
   }
 
   return (

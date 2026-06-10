@@ -27,6 +27,7 @@ const HEADER = {
 
 export default function RootNavigator() {
   const { appStatus } = useAuthStore();
+  console.log('App Status:', appStatus);
 
   return (
     <NavigationContainer>
@@ -50,18 +51,26 @@ export default function RootNavigator() {
           />
         )}
 
-        {/* ── Waiting for Stage I / II approval ── */}
-        {(appStatus === 'submitted' || appStatus === 'stage1_approved') && (
-          <Stack.Screen
-            name="Pending"
-            component={PendingScreen}
-            options={{ title: 'Pending Approval', headerLeft: () => null }}
-          />
-        )}
+        {/* ── Waiting for Stage I / II approval   || appStatus === 'stage1_approved' ── */}
+       {(appStatus === 'submitted' ) && (
+  <>
+    <Stack.Screen
+      name="Register"
+      component={RegisterScreen}
+      options={{ title: 'DM Authenticator' }}
+    />
+    {/* <Stack.Screen
+      name="Pending"
+      component={PendingScreen}
+      options={{ title: 'Pending Approval', headerLeft: () => null }}
+    /> */}
+  </>
+)}
 
         {/* ── OTP entry + sub-screens ── */}
         {appStatus === 'otp_pending' && (
           <>
+           <Stack.Screen name="Register" component={RegisterScreen} options={{ title: 'DM Authenticator' }}/>
             <Stack.Screen name="SmsOtp"          component={OtpVerifyScreen}       options={{ title: 'Verify OTP' }} />
             <Stack.Screen name="Pending"         component={PendingScreen}          options={{ title: 'Pending Approval' }} />
             <Stack.Screen name="RegistrationKey" component={RegistrationKeyScreen}  options={{ title: 'Registration Key' }} />
@@ -71,10 +80,10 @@ export default function RootNavigator() {
         {/* ── Default: first launch / unregistered ── */}
         {appStatus === 'unregistered' && (
           <>
-            <Stack.Screen name="Register"        component={RegisterScreen}         options={{ title: 'CBS Authenticator', headerLeft: () => null }} />
+            <Stack.Screen name="Register"        component={RegisterScreen}         options={{ title: 'DM Authenticator', headerLeft: () => null }} />
             <Stack.Screen name="SmsOtp"          component={OtpVerifyScreen}        options={{ title: 'Verify OTP' }} />
-            <Stack.Screen name="Pending"         component={PendingScreen}          options={{ title: 'Pending Approval' }} />
-            <Stack.Screen name="RegistrationKey" component={RegistrationKeyScreen}  options={{ title: 'Registration Key' }} />
+            {/* <Stack.Screen name="Pending"         component={PendingScreen}          options={{ title: 'Pending Approval' }} />
+            <Stack.Screen name="RegistrationKey" component={RegistrationKeyScreen}  options={{ title: 'Registration Key' }} /> */}
           </>
         )}
 

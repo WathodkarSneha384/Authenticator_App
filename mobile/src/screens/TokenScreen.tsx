@@ -19,21 +19,25 @@ export default function SidTokenScreen() {
   const [sidEntered, setSidEntered] = useState(false);
   const progress                = useRef(new Animated.Value(1)).current;
   const animRef                 = useRef<Animated.CompositeAnimation | null>(null);
+  const currentMinuteRef = useRef(Math.floor(Date.now() / 60000));
 
   // FR-012: auto-generate token when SID is entered
   function handleEnterSid() {
+    console.log('Entered SID:', sid);
     if (!sid.trim()) { Alert.alert('Error', 'Please enter the SID.'); return; }
-    if (!seed) return;
+    // if (!seed) return;
     setSidEntered(true);
     refreshToken();
   }
 
   function refreshToken() {
-    const t   = generateToken(seed!);
+    console.log('Infunction generate token0');
+    const t   = generateToken(sid!);
+    console.log('Generated Token:', t);
     const rem = remainingSeconds();
     setToken(t);
     setTimer(rem);
-    progress.setValue(rem / 30);
+    progress.setValue(rem / 60);
     if (animRef.current) animRef.current.stop();
     animRef.current = Animated.timing(progress, {
       toValue: 0, duration: rem * 1000, useNativeDriver: false,
@@ -41,15 +45,34 @@ export default function SidTokenScreen() {
     animRef.current.start();
   }
 
-  useEffect(() => {
-    if (!sidEntered) return;
-    const tick = setInterval(() => {
-      const rem = remainingSeconds();
-      setTimer(rem);
-      if (rem === 30) refreshToken(); // new 30-s window
-    }, 1000);
-    return () => clearInterval(tick);
-  }, [sidEntered, seed]);
+  // useEffect(() => {
+  //   if (!sidEntered) return;
+  //   const tick = setInterval(() => {
+  //     const rem = remainingSeconds();
+  //     setTimer(rem);
+  //     if (rem === 60) refreshToken(); // new 60-s window
+  //   }, 1000);
+  //   return () => clearInterval(tick);
+  // }, [sidEntered]);
+
+
+ useEffect(() => {
+  if (!sidEntered) return;
+
+  const tick = setInterval(() => {
+    const rem = remainingSeconds();
+    setTimer(rem);
+
+    const currentMinute = Math.floor(Date.now() / 60000);
+
+    if (currentMinute !== currentMinuteRef.current) {
+      currentMinuteRef.current = currentMinute;
+      refreshToken();
+    }
+  }, 1000);
+
+  return () => clearInterval(tick);
+}, [sidEntered]);
 
   const barWidth = progress.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] });
   const barColor = timer > 10 ? '#22C55E' : '#EF4444';

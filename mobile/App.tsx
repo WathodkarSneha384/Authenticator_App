@@ -4,7 +4,7 @@ import RootNavigator from './src/navigation/RootNavigator';
 import { useAuthStore } from './src/store/authStore';
 
 export default function App() {
-  const loadSeed = useAuthStore((s) => s.loadSeed);
+  const loadSeed = useAuthStore((s) => s.loadFromStorage);
 
   useEffect(() => {
     loadSeed(); // restore seed from AsyncStorage on app start

@@ -20,7 +20,7 @@ export default function RegistrationKeyScreen() {
     setLoading(true);
     try {
       const res = await submitRegistrationKey(userId!, key.trim());
-      await completeRegistration(res.seed, res.userId);
+      //await completeRegistration(res.seed, res.userId);
       // RootNavigator auto-switches to SidToken when appStatus === 'registered'
     } catch (e: any) {
       Alert.alert('Error', e?.response?.data?.error || e.message);
