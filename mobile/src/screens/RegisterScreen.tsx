@@ -46,9 +46,7 @@ export default function RegisterScreen({ navigation }: Props) {
 
       // OTP sent
       if(res?.status == '00'){
-      storeId(id);
-      setStatus('otp_pending');
-      if (res.mobile) setMaskedMobile(res.mobile);
+      await completeRegistration(id, res.mobile ?? '', 'otp_pending');
 
       if (res.devOtp) {
         Alert.alert('DEV — OTP', `OTP: ${res.devOtp}`, [{ text: 'OK', onPress: () => navigation.navigate('SmsOtp') }]);

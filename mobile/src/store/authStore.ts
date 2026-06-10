@@ -10,6 +10,18 @@ export type AppStatus =
   | 'stage2_approved'
   | 'registered';
 
+const PERSISTED_STATUSES: AppStatus[] = [
+  'otp_pending',
+  'submitted',
+  'stage1_approved',
+  'stage2_approved',
+  'registered',
+];
+
+function isPersistedStatus(status: string | null): status is AppStatus {
+  return !!status && PERSISTED_STATUSES.includes(status as AppStatus);
+}
+
 interface AuthState {
   userId: string | null;
   seed: string | null;
@@ -33,35 +45,37 @@ export const useAuthStore = create<AuthState>((set) => ({
   setStatus: (appStatus) => set({ appStatus }),
   setMaskedMobile: (maskedMobile) => set({ maskedMobile }),
   
-  // completeRegistration: async (seed: string, userId: string, maskedMobile: string) => {
-     completeRegistration: async ( userId: string, maskedMobile: string,status: AppStatus) => {
-  //  await AsyncStorage.setItem('seed', seed);
-    await AsyncStorage.setItem('userId', userId);
-    await AsyncStorage.setItem('mobile', maskedMobile);
-    await AsyncStorage.setItem('status', status);
-    set({  userId, appStatus: status, maskedMobile });
+  completeRegistration: async (userId: string, maskedMobile: string, status: AppStatus) => {
+    await AsyncStorage.multiSet([
+      ['userId', userId],
+      ['mobile', maskedMobile ?? ''],
+      ['status', status],
+    ]);
+    set({ userId, appStatus: status, maskedMobile: maskedMobile || null });
   },
 
   loadFromStorage: async () => {
-    const seed   = await AsyncStorage.getItem('seed');
-    const userId = await AsyncStorage.getItem('userId');
-    const status = (await AsyncStorage.getItem('status')) as  | null;
-    const mobile =await AsyncStorage.getItem('mobiAppStatusle');
-    console.log("appStatus: " + status);
-    console.log("seed: "+seed);
-    console.log("userId: "+userId);
-     if(mobile) set({ maskedMobile: mobile }); 
-    //  seed && 
-    if ( userId && status === 'registered') {
-      console.log('User is fully registered. Restoring session...');
-      set({  userId, appStatus: 'registered' });
+    const [seed, userId, status, mobile] = await Promise.all([
+      AsyncStorage.getItem('seed'),
+      AsyncStorage.getItem('userId'),
+      AsyncStorage.getItem('status'),
+      AsyncStorage.getItem('mobile'),
+    ]);
+
+    if (!userId || !isPersistedStatus(status)) {
+      return;
     }
-    const keys = await AsyncStorage.getAllKeys();
-    console.log('Keys:', keys);
+
+    set({
+      userId,
+      appStatus: status,
+      maskedMobile: mobile,
+      ...(seed ? { seed } : {}),
+    });
   },
 
   reset: () => {
-    AsyncStorage.clear();
+    AsyncStorage.multiRemove(['userId', 'mobile', 'status', 'seed']);
     set({ userId: null, seed: null, appStatus: 'unregistered', maskedMobile: null });
   },
 }));

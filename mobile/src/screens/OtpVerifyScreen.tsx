@@ -81,9 +81,7 @@ export default function OtpVerifyScreen({ navigation }: Props) {
 
       // Normal flow: wait for approval
       if(res?.status == '00'){
-      setStatus('submitted');
-      //await completeRegistration(userId!,res?.mobile);
-      console.log("Mobile no stored : "+AsyncStorage.getItem('mobile'));
+      await completeRegistration(userId!, maskedMobile ?? res?.mobile ?? '', 'submitted');
 
       Alert.alert('Submitted', 'User Registration submitted successfully.', [
         { text: 'OK', onPress: () => navigation.navigate('Register') },
@@ -91,7 +89,7 @@ export default function OtpVerifyScreen({ navigation }: Props) {
     }
 
     if(res?.status == '422'){
-      setStatus('submitted');
+      await completeRegistration(userId!, maskedMobile ?? '', 'submitted');
       Alert.alert('Submitted', res?.message || 'User is already registered.', [
         { text: 'OK', onPress: () => navigation.navigate('Register') },
       ]);
@@ -121,10 +119,8 @@ export default function OtpVerifyScreen({ navigation }: Props) {
         //  if (res.status === 'rejected') { Alert.alert('Rejected', res.message); return; }
    
          // OTP sent
-         storeId(userId!);
-         setStatus('otp_pending');
-         if (res.mobile) setMaskedMobile(res.mobile);
-   
+         await completeRegistration(userId!, res.mobile ?? maskedMobile ?? '', 'otp_pending');
+
          if (res.devOtp) {
            Alert.alert('DEV — OTP', `OTP: ${res.devOtp}`, [{ text: 'OK', onPress: () => navigation.navigate('SmsOtp') }]);
          } else {
