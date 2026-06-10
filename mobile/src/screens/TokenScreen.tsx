@@ -9,10 +9,10 @@ import {
   Animated, Alert, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { useAuthStore } from '../store/authStore';
-import { generateToken, remainingSeconds } from '../utils/totp';
+import { generateToken, generateSID, remainingSeconds } from '../utils/totp';
 
 export default function SidTokenScreen() {
-  const { seed, userId, reset } = useAuthStore();
+  const { seed, userId, maskedMobile, reset } = useAuthStore();
   const [sid, setSid]           = useState('');
   const [token, setToken]       = useState('');
   const [timer, setTimer]       = useState(0);
@@ -21,11 +21,29 @@ export default function SidTokenScreen() {
   const animRef                 = useRef<Animated.CompositeAnimation | null>(null);
   const currentMinuteRef = useRef(Math.floor(Date.now() / 60000));
 
-  // FR-012: auto-generate token when SID is entered
+  // FR-012: validate SID against locally generated one, then auto-generate token
   function handleEnterSid() {
     console.log('Entered SID:', sid);
-    if (!sid.trim()) { Alert.alert('Error', 'Please enter the SID.'); return; }
-    // if (!seed) return;
+    const entered = sid.trim();
+    if (!entered) { Alert.alert('Error', 'Please enter the SID.'); return; }
+    if (!userId || !maskedMobile) {
+      Alert.alert('Error', 'User details not found on this device. Please register again.');
+      return;
+    }
+
+    // Generate the seed locally with the same logic as the backend
+    // (userId + currentMinute + mobileNo → SHA-256 → 6 digits).
+    // Previous minute is also accepted to cover the window flipping while typing.
+    const expectedNow  = generateSID(userId, maskedMobile);
+    const expectedPrev = generateSID(userId, maskedMobile, -1);
+    console.log('Expected SID (current minute):', expectedNow);
+
+    if (entered !== expectedNow && entered !== expectedPrev) {
+      Alert.alert('Invalid SID', 'Entered SID does not match. Please check the SID shown on your CBS screen and try again.');
+      return;
+    }
+
+    currentMinuteRef.current = Math.floor(Date.now() / 60000);
     setSidEntered(true);
     refreshToken();
   }
@@ -45,17 +63,6 @@ export default function SidTokenScreen() {
     animRef.current.start();
   }
 
-  // useEffect(() => {
-  //   if (!sidEntered) return;
-  //   const tick = setInterval(() => {
-  //     const rem = remainingSeconds();
-  //     setTimer(rem);
-  //     if (rem === 60) refreshToken(); // new 60-s window
-  //   }, 1000);
-  //   return () => clearInterval(tick);
-  // }, [sidEntered]);
-
-
  useEffect(() => {
   if (!sidEntered) return;
 
@@ -65,9 +72,15 @@ export default function SidTokenScreen() {
 
     const currentMinute = Math.floor(Date.now() / 60000);
 
+    // Token window (60 s) expired without being used —
+    // go back to the Generate Token (SID entry) screen automatically.
     if (currentMinute !== currentMinuteRef.current) {
       currentMinuteRef.current = currentMinute;
-      refreshToken();
+      if (animRef.current) animRef.current.stop();
+      setSidEntered(false);
+      setSid('');
+      setToken('');
+      Alert.alert('Token Expired', 'The token has expired. Please enter the new SID shown on your CBS screen.');
     }
   }, 1000);
 
