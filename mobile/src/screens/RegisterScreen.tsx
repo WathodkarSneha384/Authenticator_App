@@ -107,7 +107,7 @@ export default function RegisterScreen({ navigation }: Props) {
           <Text className="text-gray-500 mt-1">DM Authenticator</Text>
         </View>
 
-        <Text className="text-sm font-semibold text-gray-700 mb-1">CBS User ID</Text>
+        <Text className="text-sm font-semibold text-gray-700 mb-1">User ID</Text>
         <TextInput
           className={`border-2 border-gray-200 rounded-xl px-4 py-3 text-lg mb-1 ${isUserIdLocked ? 'bg-gray-100 text-gray-500' : 'bg-white text-gray-900'}`}
           value={userId}

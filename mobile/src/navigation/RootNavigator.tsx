@@ -38,7 +38,7 @@ export default function RootNavigator() {
           <Stack.Screen
             name="SidToken"
             component={SidTokenScreen}
-            options={{ title: 'CBS Token Generator', headerLeft: () => null }}
+            options={{ title: 'Token Generator', headerLeft: () => null }}
           />
         )}
 

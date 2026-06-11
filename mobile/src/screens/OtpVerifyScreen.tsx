@@ -86,8 +86,11 @@ export default function OtpVerifyScreen({ navigation }: Props) {
       Alert.alert('Submitted', 'User Registration submitted successfully.', [
         { text: 'OK', onPress: () => navigation.navigate('Register') },
       ]);
-    }
+    }else if(res?.status == '310')
+    {
 
+      Alert.alert('Alert', 'Invalid OTP,please try again.');
+    }
     if(res?.status == '422'){
       await completeRegistration(userId!, maskedMobile ?? '', 'submitted');
       Alert.alert('Submitted', res?.message || 'User is already registered.', [

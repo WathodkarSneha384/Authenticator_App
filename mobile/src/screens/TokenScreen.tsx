@@ -34,10 +34,16 @@ export default function SidTokenScreen() {
   // }
   
 function handleEnterSid() {
-  if (!sid.trim()) {
-    Alert.alert('Error', 'Please enter the SID.');
-    return;
-  }
+  // if (!sid.trim()) {
+  //   Alert.alert('Error', 'Please enter the SID.');
+  //   return;
+  // }
+   const id = sid.trim().toUpperCase();
+      if (!id) { Alert.alert('Error', 'Please enter your User ID.'); return; }
+      if (!/^[A-Z0-9]{1,10}$/.test(id)) {
+        Alert.alert('Error', 'SID must be alphanumeric and max 6 characters.');
+        return;
+      }
 
   tokenStartTimeRef.current = Date.now();
 
@@ -143,17 +149,23 @@ useEffect(() => {
       <KeyboardAvoidingView className="flex-1 bg-surface" behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View className="flex-1 justify-center px-6">
           <View className="items-center mb-10">
-            <Text className="text-2xl font-bold text-primary">CBS Login</Text>
+            <Text className="text-2xl font-bold text-primary">DM Authenticator</Text>
             <Text className="text-gray-500 mt-1 text-center">
-              Enter the SID displayed on your CBS screen to generate your token.
+              Enter the SID displayed on your login screen to generate your token.
             </Text>
           </View>
-
-          <Text className="text-sm font-semibold text-gray-700 mb-1">SID</Text>
+           
+          <View className="items-center">
+                     <Text className="text-2xl font-bold text-primary mb-4">
+                                             SID
+            </Text>
+          </View>
+                  
           <TextInput
             className="bg-white border-2 border-gray-200 rounded-xl px-4 py-4 text-center text-2xl tracking-widest text-gray-900 mb-8"
             value={sid}
             onChangeText={setSid}
+            maxLength={6}
             placeholder="Enter SID"
             autoCapitalize="characters"
             autoCorrect={false}
