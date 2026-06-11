@@ -2,7 +2,7 @@
  * RegisterScreen — Step 1
  * User enters CBS User ID (max 10 alphanumeric). FR-001 FR-002 FR-003
  */
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
   ActivityIndicator, Alert, KeyboardAvoidingView, Platform,
@@ -19,7 +19,18 @@ type Props = { navigation: NativeStackNavigationProp<RootStackParamList, 'Regist
 export default function RegisterScreen({ navigation }: Props) {
   const [userId, setUserId]   = useState('');
   const [loading, setLoading] = useState(false);
-  const { setUserId: storeId, setStatus, setMaskedMobile,completeRegistration } = useAuthStore();
+  const { setUserId: storeId, setStatus, setMaskedMobile,completeRegistration, userId: storedUserId, appStatus } = useAuthStore();
+
+  // Once the registration has been submitted (after OTP verification), the
+  // User ID is locked: pre-fill it from the store/storage and prevent editing
+  // so the user cannot register a different User ID.
+  const isUserIdLocked = appStatus === 'submitted';
+
+  useEffect(() => {
+    if (storedUserId) {
+      setUserId(storedUserId);
+    }
+  }, [storedUserId]);
 
   async function handleRegister() {
     
@@ -98,15 +109,18 @@ export default function RegisterScreen({ navigation }: Props) {
 
         <Text className="text-sm font-semibold text-gray-700 mb-1">CBS User ID</Text>
         <TextInput
-          className="bg-white border-2 border-gray-200 rounded-xl px-4 py-3 text-lg text-gray-900 mb-1"
+          className={`border-2 border-gray-200 rounded-xl px-4 py-3 text-lg mb-1 ${isUserIdLocked ? 'bg-gray-100 text-gray-500' : 'bg-white text-gray-900'}`}
           value={userId}
           onChangeText={(t) => setUserId(t.toUpperCase())}
           placeholder="Enter User ID"
           autoCapitalize="characters"
           maxLength={10}
           autoCorrect={false}
+          editable={!isUserIdLocked}
         />
-        <Text className="text-xs text-gray-400 mb-8">Max 10 alphanumeric characters</Text>
+        <Text className="text-xs text-gray-400 mb-8">
+          {isUserIdLocked ? 'Your registration is submitted for this User ID.' : 'Max 10 alphanumeric characters'}
+        </Text>
 
         <TouchableOpacity
           className={`bg-primary rounded-xl py-4 items-center ${loading ? 'opacity-60' : ''}`}
