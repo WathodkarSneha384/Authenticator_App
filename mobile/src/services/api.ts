@@ -19,9 +19,7 @@ export const DEMO_SEED = 'JBSWY3DPEHPK3PXP'; // fixed seed for demo TOTP
 function delay(ms = 800) { return new Promise(r => setTimeout(r, ms)); }
 
 // ── real axios instance (used when DEMO_MODE = false) ──
-const BASE_URL = __DEV__
-  ? 'http://223.30.224.244:8484/dmCmsService/rest/endpoints'
-  : 'https://your-production-server/api';
+const BASE_URL = 'http://223.30.224.244:8484/dmCmsService/rest/endpoints';
 const api = axios.create({ baseURL: BASE_URL, timeout: 10000 });
 
 

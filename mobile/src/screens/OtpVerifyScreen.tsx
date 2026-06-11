@@ -122,10 +122,13 @@ export default function OtpVerifyScreen({ navigation }: Props) {
          // authorization so it never changes on the OTP screen.
          await completeRegistration(userId!, maskedMobile ?? res.mobileNo ?? res.mobile ?? '', 'otp_pending');
 
+         // We are already on this screen, so restart the countdown directly
+         // (re-enables Submit) and clear the previously entered OTP.
+         setOtp('');
+         startTimer();
+
          if (res.devOtp) {
-           Alert.alert('DEV — OTP', `OTP: ${res.devOtp}`, [{ text: 'OK', onPress: () => navigation.navigate('SmsOtp') }]);
-         } else {
-           navigation.navigate('SmsOtp');
+           Alert.alert('DEV — OTP', `OTP: ${res.devOtp}`);
          }
        } catch (e: any) {
          console.error('Validation Error:', e);
