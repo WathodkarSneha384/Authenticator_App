@@ -118,8 +118,9 @@ export default function OtpVerifyScreen({ navigation }: Props) {
         //  }
         //  if (res.status === 'rejected') { Alert.alert('Rejected', res.message); return; }
    
-         // OTP sent
-         await completeRegistration(userId!, res.mobile ?? maskedMobile ?? '', 'otp_pending');
+         // OTP sent — keep the same mobile number captured during
+         // authorization so it never changes on the OTP screen.
+         await completeRegistration(userId!, maskedMobile ?? res.mobileNo ?? res.mobile ?? '', 'otp_pending');
 
          if (res.devOtp) {
            Alert.alert('DEV — OTP', `OTP: ${res.devOtp}`, [{ text: 'OK', onPress: () => navigation.navigate('SmsOtp') }]);
