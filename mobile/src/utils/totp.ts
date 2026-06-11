@@ -35,7 +35,7 @@ function hmacSha1(key: Uint8Array, message: Uint8Array): Uint8Array {
 }
 
 // ── TOTP ───────────────────────────────────────────────────────────────────
-const STEP    = 60;   // seconds
+const STEP    = 120;   // seconds
 const DIGITS  = 6;
 
 function counterBytes(counter: number): Uint8Array {

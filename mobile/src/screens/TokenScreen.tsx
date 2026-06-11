@@ -20,30 +20,91 @@ export default function SidTokenScreen() {
   const progress                = useRef(new Animated.Value(1)).current;
   const animRef                 = useRef<Animated.CompositeAnimation | null>(null);
   const currentMinuteRef = useRef(Math.floor(Date.now() / 60000));
+  const sidTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const tokenStartTimeRef = useRef<number>(0);
+  
 
   // FR-012: auto-generate token when SID is entered
-  function handleEnterSid() {
-    console.log('Entered SID:', sid);
-    if (!sid.trim()) { Alert.alert('Error', 'Please enter the SID.'); return; }
-    // if (!seed) return;
-    setSidEntered(true);
-    refreshToken();
+  // function handleEnterSid() {
+  //   console.log('Entered SID:', sid);
+  //   if (!sid.trim()) { Alert.alert('Error', 'Please enter the SID.'); return; }
+  //   // if (!seed) return;
+  //   setSidEntered(true);
+  //   refreshToken();
+  // }
+  
+function handleEnterSid() {
+  if (!sid.trim()) {
+    Alert.alert('Error', 'Please enter the SID.');
+    return;
   }
 
-  function refreshToken() {
-    console.log('Infunction generate token0');
-    const t   = generateToken(sid!);
-    console.log('Generated Token:', t);
-    const rem = remainingSeconds();
-    setToken(t);
+  tokenStartTimeRef.current = Date.now();
+
+  setSidEntered(true);
+  refreshToken();
+}
+
+useEffect(() => {
+  if (!sidEntered) return;
+
+  const tick = setInterval(() => {
+    const elapsed = Math.floor(
+      (Date.now() - tokenStartTimeRef.current) / 1000
+    );
+
+    const rem = Math.max(120 - elapsed, 0);
+
     setTimer(rem);
-    progress.setValue(rem / 60);
-    if (animRef.current) animRef.current.stop();
-    animRef.current = Animated.timing(progress, {
-      toValue: 0, duration: rem * 1000, useNativeDriver: false,
-    });
-    animRef.current.start();
-  }
+
+    progress.setValue(rem / 120);
+
+    if (rem <= 0) {
+      clearInterval(tick);
+
+      setSidEntered(false);
+      setSid('');
+      setToken('');
+      setTimer(0);
+
+      return;
+    }
+
+    const currentMinute = Math.floor(Date.now() / 60000);
+
+    if (currentMinute !== currentMinuteRef.current) {
+      currentMinuteRef.current = currentMinute;
+      refreshToken();
+    }
+  }, 1000);
+
+  return () => clearInterval(tick);
+}, [sidEntered]);
+
+  // function refreshToken() {
+  //   console.log('Infunction generate token0');
+  //   const t   = generateToken(sid!);
+  //   console.log('Generated Token:', t);
+  //   const rem = remainingSeconds();
+  //   setToken(t);
+  //   setTimer(rem);
+  //   progress.setValue(rem / 120);
+  //   if (animRef.current) animRef.current.stop();
+  //   animRef.current = Animated.timing(progress, {
+  //     toValue: 0, duration: rem * 1000, useNativeDriver: false,
+  //   });
+  //   animRef.current.start();
+  // }
+
+
+  function refreshToken() {
+  console.log('In function generate token');
+
+  const t = generateToken(sid);
+  console.log('Generated Token:', t);
+
+  setToken(t);
+}
 
   // useEffect(() => {
   //   if (!sidEntered) return;
@@ -56,23 +117,23 @@ export default function SidTokenScreen() {
   // }, [sidEntered]);
 
 
- useEffect(() => {
-  if (!sidEntered) return;
+//  useEffect(() => {
+//   if (!sidEntered) return;
 
-  const tick = setInterval(() => {
-    const rem = remainingSeconds();
-    setTimer(rem);
+//   const tick = setInterval(() => {
+//     const rem = remainingSeconds();
+//     setTimer(rem);
 
-    const currentMinute = Math.floor(Date.now() / 60000);
+//     const currentMinute = Math.floor(Date.now() / 60000);
 
-    if (currentMinute !== currentMinuteRef.current) {
-      currentMinuteRef.current = currentMinute;
-      refreshToken();
-    }
-  }, 1000);
+//     if (currentMinute !== currentMinuteRef.current) {
+//       currentMinuteRef.current = currentMinute;
+//       refreshToken();
+//     }
+//   }, 1000);
 
-  return () => clearInterval(tick);
-}, [sidEntered]);
+//   return () => clearInterval(tick);
+// }, [sidEntered]);
 
   const barWidth = progress.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] });
   const barColor = timer > 10 ? '#22C55E' : '#EF4444';

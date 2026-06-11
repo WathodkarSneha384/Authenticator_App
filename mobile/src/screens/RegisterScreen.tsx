@@ -45,7 +45,7 @@ export default function RegisterScreen({ navigation }: Props) {
       // if (res.status === 'rejected') { Alert.alert('Rejected', res.message); return; }
 
       // OTP sent
-      if(res?.status == '00'){
+      if(res?.errorCode == '00'){
       await completeRegistration(id, res.mobileNo ?? res.mobile ?? '', 'otp_pending');
 
       if (res.devOtp) {
