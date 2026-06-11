@@ -20,7 +20,7 @@ function delay(ms = 800) { return new Promise(r => setTimeout(r, ms)); }
 
 // ── real axios instance (used when DEMO_MODE = false) ──
 const BASE_URL = __DEV__
-  ? 'http://10.2.0.121:8182/dmCmsService/rest/endpoints'
+  ? 'http://223.30.224.244:8484/dmCmsService/rest/endpoints'
   : 'https://your-production-server/api';
 const api = axios.create({ baseURL: BASE_URL, timeout: 10000 });
 
