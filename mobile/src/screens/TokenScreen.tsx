@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { useAuthStore } from '../store/authStore';
 import { generateToken, remainingSeconds } from '../utils/totp';
+import Logo from '../components/Logo';
 
 export default function SidTokenScreen() {
   const { seed, userId, reset } = useAuthStore();
@@ -148,32 +149,35 @@ useEffect(() => {
     return (
       <KeyboardAvoidingView className="flex-1 bg-surface" behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View className="flex-1 justify-center px-6">
-          <View className="items-center mb-10">
-            <Text className="text-2xl font-bold text-primary">DM Authenticator</Text>
+          <View className="items-center mb-8">
+            <Logo size={96} />
+            <Text className="text-2xl font-bold text-primary mt-4">DM Authenticator</Text>
             <Text className="text-gray-500 mt-1 text-center">
               Enter the SID displayed on your login screen to generate your token.
             </Text>
           </View>
-           
-          <View className="items-center">
-                     <Text className="text-2xl font-bold text-primary mb-4">
-                                             SID
-            </Text>
-          </View>
-                  
-          <TextInput
-            className="bg-white border-2 border-gray-200 rounded-xl px-4 py-4 text-center text-2xl tracking-widest text-gray-900 mb-8"
-            value={sid}
-            onChangeText={setSid}
-            maxLength={6}
-            placeholder="Enter SID"
-            autoCapitalize="characters"
-            autoCorrect={false}
-          />
 
-          <TouchableOpacity className="bg-primary rounded-xl py-4 items-center" onPress={handleEnterSid}>
-            <Text className="text-white font-bold text-base">Generate Token</Text>
-          </TouchableOpacity>
+          <View className="bg-white rounded-2xl px-5 pt-6 pb-7 shadow-md">
+            <Text className="text-sm font-semibold text-gray-700 mb-1">SID</Text>
+            <TextInput
+              className="bg-surface border-2 border-gray-200 rounded-xl px-4 py-4 text-center text-2xl tracking-widest text-gray-900 mb-6"
+              value={sid}
+              onChangeText={setSid}
+              maxLength={6}
+              placeholder="Enter SID"
+              placeholderTextColor="#9CA3AF"
+              autoCapitalize="characters"
+              autoCorrect={false}
+            />
+
+            <TouchableOpacity
+              className="bg-primary rounded-xl py-4 items-center shadow-sm"
+              onPress={handleEnterSid}
+              activeOpacity={0.85}
+            >
+              <Text className="text-white font-bold text-base">Generate Token</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </KeyboardAvoidingView>
     );
@@ -181,14 +185,15 @@ useEffect(() => {
 
   return (
     <View className="flex-1 bg-surface items-center justify-center px-6">
-      <Text className="text-gray-500 text-sm mb-1">SID: <Text className="font-bold text-primary">{sid}</Text></Text>
+      <Logo size={64} />
+      <Text className="text-gray-500 text-sm mt-4 mb-1">SID: <Text className="font-bold text-primary">{sid}</Text></Text>
       <Text className="text-gray-500 text-sm mb-6">User ID: <Text className="font-bold text-primary">{userId}</Text></Text>
 
       {/* Token display */}
-      <View className="bg-white rounded-2xl px-10 py-8 shadow-md items-center mb-6 w-full">
+      <View className="bg-white rounded-2xl px-10 py-8 shadow-md items-center mb-6 w-full border-t-4 border-accent">
         <Text className="text-xs text-gray-400 mb-2 uppercase tracking-widest">Your Token</Text>
-        <Text className="text-5xl font-bold tracking-widest text-primary">{token}</Text>
-        <Text className="text-xs text-gray-400 mt-3">Tap to copy</Text>
+        <Text className="text-5xl font-bold tracking-widest text-accent-dark">{token}</Text>
+        <Text className="text-xs text-gray-400 mt-3">Refreshes automatically</Text>
       </View>
 
       {/* Countdown bar */}

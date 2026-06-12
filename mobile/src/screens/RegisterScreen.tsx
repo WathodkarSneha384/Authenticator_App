@@ -11,7 +11,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/RootNavigator';
 import { validateUser } from '../services/api';
 import { useAuthStore } from '../store/authStore';
-import App from '../../App';
+import Logo from '../components/Logo';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type Props = { navigation: NativeStackNavigationProp<RootStackParamList, 'Register'> };
@@ -99,38 +99,52 @@ export default function RegisterScreen({ navigation }: Props) {
   return (
     <KeyboardAvoidingView className="flex-1 bg-surface" behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View className="flex-1 justify-center px-6">
+
+        {/* Brand header */}
         <View className="items-center mb-10">
-          <View className="w-20 h-20 bg-primary rounded-full items-center justify-center mb-4">
-            <Text className="text-white text-3xl font-bold">DMA</Text>
-          </View>
-          <Text className="text-2xl font-bold text-primary">DM Aunthenticator</Text>
-          <Text className="text-gray-500 mt-1">DM Authenticator</Text>
+          <Logo size={104} />
+          <Text className="text-2xl font-bold text-primary mt-5">DM Authenticator</Text>
+          <Text className="text-gray-500 mt-1">Secure offline authentication</Text>
         </View>
 
-        <Text className="text-sm font-semibold text-gray-700 mb-1">User ID</Text>
-        <TextInput
-          className={`border-2 border-gray-200 rounded-xl px-4 py-3 text-lg mb-1 ${isUserIdLocked ? 'bg-gray-100 text-gray-500' : 'bg-white text-gray-900'}`}
-          value={userId}
-          onChangeText={(t) => setUserId(t.toUpperCase())}
-          placeholder="Enter User ID"
-          autoCapitalize="characters"
-          maxLength={10}
-          autoCorrect={false}
-          editable={!isUserIdLocked}
-        />
-        <Text className="text-xs text-gray-400 mb-8">
-          {isUserIdLocked ? 'Your registration is submitted for this User ID.' : 'Max 10 alphanumeric characters'}
-        </Text>
+        {/* Form card */}
+        <View className="bg-white rounded-2xl px-5 pt-6 pb-7 shadow-md">
+          <Text className="text-lg font-bold text-primary mb-1">Get started</Text>
+          <Text className="text-gray-500 text-sm mb-5">
+            Enter your CBS User ID to begin registration.
+          </Text>
 
-        <TouchableOpacity
-          className={`bg-primary rounded-xl py-4 items-center ${loading ? 'opacity-60' : ''}`}
-          onPress={handleRegister}
-          disabled={loading}
-        >
-          {loading
-            ? <ActivityIndicator color="#fff" />
-            : <Text className="text-white font-bold text-base">Register</Text>}
-        </TouchableOpacity>
+          <Text className="text-sm font-semibold text-gray-700 mb-1">User ID</Text>
+          <TextInput
+            className={`border-2 rounded-xl px-4 py-3 text-lg mb-1 ${isUserIdLocked ? 'bg-gray-100 border-gray-200 text-gray-500' : 'bg-surface border-gray-200 text-gray-900'}`}
+            value={userId}
+            onChangeText={(t) => setUserId(t.toUpperCase())}
+            placeholder="Enter User ID"
+            placeholderTextColor="#9CA3AF"
+            autoCapitalize="characters"
+            maxLength={10}
+            autoCorrect={false}
+            editable={!isUserIdLocked}
+          />
+          <Text className="text-xs text-gray-400 mb-6">
+            {isUserIdLocked ? 'Your registration is submitted for this User ID.' : 'Max 10 alphanumeric characters'}
+          </Text>
+
+          <TouchableOpacity
+            className={`bg-primary rounded-xl py-4 items-center shadow-sm ${loading ? 'opacity-60' : ''}`}
+            onPress={handleRegister}
+            disabled={loading}
+            activeOpacity={0.85}
+          >
+            {loading
+              ? <ActivityIndicator color="#fff" />
+              : <Text className="text-white font-bold text-base">Register</Text>}
+          </TouchableOpacity>
+        </View>
+
+        <Text className="text-center text-xs text-gray-400 mt-8">
+          Protected by datavsnus
+        </Text>
       </View>
     </KeyboardAvoidingView>
   );

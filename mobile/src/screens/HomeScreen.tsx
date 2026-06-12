@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { submitRegistrationKey } from '../services/api';
 import { useAuthStore } from '../store/authStore';
+import Logo from '../components/Logo';
 
 export default function RegistrationKeyScreen() {
   const [key, setKey]         = useState('');
@@ -35,10 +36,8 @@ export default function RegistrationKeyScreen() {
       <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', padding: 24 }}>
 
         <View className="items-center mb-8">
-          <View className="w-20 h-20 bg-success rounded-full items-center justify-center mb-4">
-            <Text className="text-white text-3xl">🔑</Text>
-          </View>
-          <Text className="text-2xl font-bold text-primary">Registration Key</Text>
+          <Logo size={84} />
+          <Text className="text-2xl font-bold text-primary mt-4">Registration Key</Text>
           <Text className="text-gray-500 mt-1 text-center">
             Enter the Registration Key sent to your registered mobile number.
           </Text>

@@ -12,6 +12,7 @@ import { RootStackParamList } from '../navigation/RootNavigator';
 import { validateOtp, resendOtp, validateUser } from '../services/api';
 import { useAuthStore } from '../store/authStore';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import Logo from '../components/Logo';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type Props = { navigation: NativeStackNavigationProp<RootStackParamList, 'SmsOtp'> };
@@ -146,57 +147,60 @@ export default function OtpVerifyScreen({ navigation }: Props) {
     >
       <View className="flex-1 justify-center px-6">
 
-        <Text className="text-2xl font-bold text-primary mb-2">Enter OTP</Text>
-        <Text className="text-gray-500 mb-1">
-          {maskedMobile ? `OTP sent to ${maskedMobile}` : 'OTP sent to your registered mobile number.'}
-        </Text>
-
-        {/* DEMO hint */}
-        <View className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-2 mb-6">
-          <Text className="text-blue-700 text-xs font-semibold">DEMO MODE — OTP is: 123456</Text>
-        </View>
-
-        {/* OTP input — FR-005 FR-006 */}
-        <TextInput
-          className="bg-white border-2 border-gray-200 rounded-xl px-4 py-4 text-center text-3xl tracking-widest text-gray-900 mb-4"
-          value={otp}
-          onChangeText={t => setOtp(t.replace(/[^0-9]/g, ''))}
-          placeholder="000000"
-          keyboardType="numeric"
-          maxLength={6}
-        />
-
-        {/* Timer — FR-008 */}
         <View className="items-center mb-6">
-          <Text className={`text-xl font-bold ${timer < 30 ? 'text-red-500' : 'text-primary'}`}>
-            {mm}:{ss}
+          <Logo size={84} />
+          <Text className="text-2xl font-bold text-primary mt-4">Enter OTP</Text>
+          <Text className="text-gray-500 mt-1 text-center">
+            {maskedMobile ? `OTP sent to ${maskedMobile}` : 'OTP sent to your registered mobile number.'}
           </Text>
-          <Text className="text-xs text-gray-400">OTP expires in</Text>
         </View>
 
-        {/* Submit — FR-007 */}
-        <TouchableOpacity
-          className={`bg-primary rounded-xl py-4 items-center mb-4 ${(loading || timer === 0) ? 'opacity-50' : ''}`}
-          onPress={handleSubmit}
-          disabled={loading || timer === 0}
-        >
-          {loading
-            ? <ActivityIndicator color="#fff" />
-            : <Text className="text-white font-bold text-base">Submit</Text>}
-        </TouchableOpacity>
+        <View className="bg-white rounded-2xl px-5 pt-6 pb-7 shadow-md">
+          {/* OTP input — FR-005 FR-006 */}
+          <TextInput
+            className="bg-surface border-2 border-gray-200 rounded-xl px-4 py-4 text-center text-3xl tracking-widest text-gray-900 mb-4"
+            value={otp}
+            onChangeText={t => setOtp(t.replace(/[^0-9]/g, ''))}
+            placeholder="000000"
+            placeholderTextColor="#9CA3AF"
+            keyboardType="numeric"
+            maxLength={6}
+          />
 
-        {/* Resend — FR-009: enabled only after timer hits 0 */}
-        <TouchableOpacity
-          className={`rounded-xl py-3 items-center border ${timer === 0 ? 'border-primary' : 'border-gray-200'}`}
-          onPress={handleResend}
-          disabled={timer > 0 || resending}
-        >
-          {resending
-            ? <ActivityIndicator color="#1B4F8A" />
-            : <Text className={`font-semibold ${timer === 0 ? 'text-primary' : 'text-gray-300'}`}>
-                Resend OTP {timer > 0 ? `(available in ${mm}:${ss})` : ''}
-              </Text>}
-        </TouchableOpacity>
+          {/* Timer — FR-008 */}
+          <View className="items-center mb-6">
+            <Text className={`text-xl font-bold ${timer < 30 ? 'text-danger' : 'text-accent-dark'}`}>
+              {mm}:{ss}
+            </Text>
+            <Text className="text-xs text-gray-400">OTP expires in</Text>
+          </View>
+
+          {/* Submit — FR-007 */}
+          <TouchableOpacity
+            className={`bg-primary rounded-xl py-4 items-center mb-3 shadow-sm ${(loading || timer === 0) ? 'opacity-50' : ''}`}
+            onPress={handleSubmit}
+            disabled={loading || timer === 0}
+            activeOpacity={0.85}
+          >
+            {loading
+              ? <ActivityIndicator color="#fff" />
+              : <Text className="text-white font-bold text-base">Submit</Text>}
+          </TouchableOpacity>
+
+          {/* Resend — FR-009: enabled only after timer hits 0 */}
+          <TouchableOpacity
+            className={`rounded-xl py-3 items-center border ${timer === 0 ? 'border-accent' : 'border-gray-200'}`}
+            onPress={handleResend}
+            disabled={timer > 0 || resending}
+            activeOpacity={0.85}
+          >
+            {resending
+              ? <ActivityIndicator color="#16A9C2" />
+              : <Text className={`font-semibold ${timer === 0 ? 'text-accent-dark' : 'text-gray-300'}`}>
+                  Resend OTP {timer > 0 ? `(available in ${mm}:${ss})` : ''}
+                </Text>}
+          </TouchableOpacity>
+        </View>
 
       </View>
     </KeyboardAvoidingView>

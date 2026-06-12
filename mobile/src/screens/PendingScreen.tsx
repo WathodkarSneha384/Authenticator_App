@@ -4,13 +4,15 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Alert } from 'react-native';
 import { useAuthStore } from '../store/authStore';
+import Logo from '../components/Logo';
 
 export default function PendingScreen() {
   const { userId, reset } = useAuthStore();
 
   return (
     <View className="flex-1 bg-surface items-center justify-center px-6">
-      <Text className="text-5xl mb-6">⏳</Text>
+      <Logo size={84} />
+      <Text className="text-5xl my-5">⏳</Text>
       <Text className="text-2xl font-bold text-primary mb-3">Pending Approval</Text>
       <Text className="text-gray-600 text-center mb-2">
         Your registration is under review.

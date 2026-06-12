@@ -20,7 +20,7 @@ export type RootStackParamList = {
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 const HEADER = {
-  headerStyle:      { backgroundColor: '#1B4F8A' },
+  headerStyle:      { backgroundColor: '#0F2C57' },
   headerTintColor:  '#fff',
   headerTitleStyle: { fontWeight: 'bold' as const },
 };
