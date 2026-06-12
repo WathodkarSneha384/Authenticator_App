@@ -137,7 +137,7 @@ export default function RegisterScreen({ navigation }: Props) {
         </View>
 
         <Text className="text-center text-xs text-gray-400 mt-8">
-          Protected by datavsnus
+          Protected by datavision
         </Text>
       </View>
     </KeyboardAvoidingView>

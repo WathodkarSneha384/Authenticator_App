@@ -61,11 +61,11 @@ useEffect(() => {
       (Date.now() - tokenStartTimeRef.current) / 1000
     );
 
-    const rem = Math.max(120 - elapsed, 0);
+    const rem = Math.max(100 - elapsed, 0);
 
     setTimer(rem);
 
-    progress.setValue(rem / 120);
+    progress.setValue(rem / 100);
 
     if (rem <= 0) {
       clearInterval(tick);

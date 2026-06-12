@@ -75,7 +75,7 @@ export default function SplashScreen() {
       <View className="absolute bottom-16 left-0 right-0 items-center">
         <ActivityIndicator color="#46C4D8" />
         <Text className="text-xs mt-3" style={{ color: 'rgba(255,255,255,0.6)' }}>
-          Powered by datavsnus
+          Powered by datavision
         </Text>
       </View>
     </View>
