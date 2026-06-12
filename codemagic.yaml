@@ -1,0 +1,109 @@
+# ──────────────────────────────────────────────────────────────────────────
+#  Codemagic CI/CD — build a shareable iOS .ipa in the cloud (no Mac needed).
+#
+#  This produces an AD-HOC .ipa you can share privately with registered devices
+#  (no App Store). It runs on a Codemagic macOS VM.
+#
+#  ONE-TIME SETUP in the Codemagic UI (https://codemagic.io):
+#   1. Add this repository as an app.
+#   2. Connect an "App Store Connect API key" integration and note its name.
+#      (Apps → integrations → Developer Portal). Used for automatic signing.
+#   3. Register your testers' device UDIDs in your Apple Developer account
+#      (Certificates, IDs & Profiles → Devices) — ad-hoc only installs on those.
+#   4. Edit the values marked >>> EDIT <<< below (team-less; bundle id + email +
+#      the API key integration name).
+#
+#  Requires: Apple Developer Program membership ($99/yr).
+# ──────────────────────────────────────────────────────────────────────────
+
+workflows:
+  ios-adhoc:
+    name: iOS Ad-Hoc IPA
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+
+    environment:
+      vars:
+        # The app lives in the mobile/ subfolder of this repo.
+        APP_DIR: "mobile"
+        XCODE_WORKSPACE: "ProctoAuthApp.xcworkspace"
+        XCODE_SCHEME: "ProctoAuthApp"
+        BUNDLE_ID: "com.proctoapp"          # >>> EDIT if your bundle id differs
+        RN_VERSION: "0.73.6"
+      node: 18
+      xcode: latest
+      cocoapods: default
+      # Automatic code signing via the App Store Connect API key integration.
+      ios_signing:
+        distribution_type: ad_hoc
+        bundle_identifier: com.proctoapp     # >>> EDIT if your bundle id differs
+      # >>> EDIT: replace with the name of YOUR App Store Connect API key
+      #     integration created in the Codemagic UI.
+      integrations:
+        app_store_connect: AppStoreConnectKey
+
+    scripts:
+      - name: Install JS dependencies
+        script: |
+          cd "$APP_DIR"
+          npm ci || npm install
+
+      - name: Generate native iOS project (if not committed)
+        script: |
+          cd "$APP_DIR"
+          if [ ! -d "ios/ProctoAuthApp.xcodeproj" ]; then
+            echo "No .xcodeproj found — generating from the RN $RN_VERSION template…"
+            cd ..
+            npx @react-native-community/cli@latest init ProctoAuthApp \
+              --version "$RN_VERSION" --directory _ios_tmp --skip-install
+            # Copy only the Xcode wrapper; KEEP our committed Podfile + Info.plist.
+            cp -R _ios_tmp/ios/ProctoAuthApp.xcodeproj              "$APP_DIR/ios/"
+            cp    _ios_tmp/ios/ProctoAuthApp/AppDelegate.h          "$APP_DIR/ios/ProctoAuthApp/"
+            cp    _ios_tmp/ios/ProctoAuthApp/AppDelegate.mm         "$APP_DIR/ios/ProctoAuthApp/"
+            cp    _ios_tmp/ios/ProctoAuthApp/main.m                 "$APP_DIR/ios/ProctoAuthApp/"
+            cp    _ios_tmp/ios/ProctoAuthApp/LaunchScreen.storyboard "$APP_DIR/ios/ProctoAuthApp/"
+            cp -R _ios_tmp/ios/ProctoAuthApp/Images.xcassets        "$APP_DIR/ios/ProctoAuthApp/"
+            cp -R _ios_tmp/ios/ProctoAuthApp/PrivacyInfo.xcprivacy  "$APP_DIR/ios/ProctoAuthApp/" 2>/dev/null || true
+            rm -rf _ios_tmp
+          else
+            echo ".xcodeproj already present — using committed project."
+          fi
+
+      - name: Install CocoaPods
+        script: |
+          cd "$APP_DIR/ios"
+          pod install --repo-update
+
+      - name: Set up code signing (automatic, ad-hoc)
+        script: |
+          cd "$APP_DIR/ios"
+          # Fetch/create an ad-hoc profile for the bundle id and apply it.
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_ADHOC \
+            --create
+          keychain initialize
+          keychain add-certificates
+          xcode-project use-profiles
+
+      - name: Build & export ad-hoc IPA
+        script: |
+          cd "$APP_DIR/ios"
+          xcode-project build-ipa \
+            --workspace "$XCODE_WORKSPACE" \
+            --scheme "$XCODE_SCHEME" \
+            --config Release \
+            --archive-flags="-destination 'generic/platform=iOS'"
+
+    artifacts:
+      - mobile/ios/build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+      - mobile/ios/build/ios/xcarchive/*.app.dSYM.zip
+
+    publishing:
+      email:
+        # >>> EDIT: who should receive the finished .ipa download link.
+        recipients:
+          - you@example.com
+        notify:
+          success: true
+          failure: true

@@ -1,0 +1,12 @@
+# Xcode / CocoaPods local artifacts (regenerated per machine)
+.xcode.env.local
+build/
+Pods/
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+*.xcodeproj/project.xcworkspace/xcuserdata/
+
+# Signing / export artifacts
+*.ipa
+*.dSYM.zip
+ExportOptions.plist
