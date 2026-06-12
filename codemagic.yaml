@@ -107,3 +107,106 @@ workflows:
         notify:
           success: true
           failure: true
+
+  # ────────────────────────────────────────────────────────────────────────
+  #  Alternative: distribute via TestFlight (invite testers by email/link,
+  #  NO device UDIDs to collect, NOT the public App Store). Still requires the
+  #  Apple Developer account + an App Store Connect API key integration.
+  #  Note: the app must exist in App Store Connect with this bundle id first.
+  # ────────────────────────────────────────────────────────────────────────
+  ios-testflight:
+    name: iOS TestFlight
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+
+    environment:
+      vars:
+        APP_DIR: "mobile"
+        XCODE_WORKSPACE: "ProctoAuthApp.xcworkspace"
+        XCODE_SCHEME: "ProctoAuthApp"
+        BUNDLE_ID: "com.proctoapp"          # >>> EDIT if your bundle id differs
+        RN_VERSION: "0.73.6"
+      node: 18
+      xcode: latest
+      cocoapods: default
+      ios_signing:
+        distribution_type: app_store        # TestFlight uses an App Store profile
+        bundle_identifier: com.proctoapp     # >>> EDIT if your bundle id differs
+      # >>> EDIT: name of YOUR App Store Connect API key integration.
+      integrations:
+        app_store_connect: AppStoreConnectKey
+
+    scripts:
+      - name: Install JS dependencies
+        script: |
+          cd "$APP_DIR"
+          npm ci || npm install
+
+      - name: Generate native iOS project (if not committed)
+        script: |
+          cd "$APP_DIR"
+          if [ ! -d "ios/ProctoAuthApp.xcodeproj" ]; then
+            echo "No .xcodeproj found — generating from the RN $RN_VERSION template…"
+            cd ..
+            npx @react-native-community/cli@latest init ProctoAuthApp \
+              --version "$RN_VERSION" --directory _ios_tmp --skip-install
+            cp -R _ios_tmp/ios/ProctoAuthApp.xcodeproj              "$APP_DIR/ios/"
+            cp    _ios_tmp/ios/ProctoAuthApp/AppDelegate.h          "$APP_DIR/ios/ProctoAuthApp/"
+            cp    _ios_tmp/ios/ProctoAuthApp/AppDelegate.mm         "$APP_DIR/ios/ProctoAuthApp/"
+            cp    _ios_tmp/ios/ProctoAuthApp/main.m                 "$APP_DIR/ios/ProctoAuthApp/"
+            cp    _ios_tmp/ios/ProctoAuthApp/LaunchScreen.storyboard "$APP_DIR/ios/ProctoAuthApp/"
+            cp -R _ios_tmp/ios/ProctoAuthApp/Images.xcassets        "$APP_DIR/ios/ProctoAuthApp/"
+            cp -R _ios_tmp/ios/ProctoAuthApp/PrivacyInfo.xcprivacy  "$APP_DIR/ios/ProctoAuthApp/" 2>/dev/null || true
+            rm -rf _ios_tmp
+          else
+            echo ".xcodeproj already present — using committed project."
+          fi
+
+      - name: Install CocoaPods
+        script: |
+          cd "$APP_DIR/ios"
+          pod install --repo-update
+
+      - name: Set up code signing (automatic, App Store)
+        script: |
+          cd "$APP_DIR/ios"
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --create
+          keychain initialize
+          keychain add-certificates
+          xcode-project use-profiles
+
+      - name: Increment build number (avoids TestFlight conflicts)
+        script: |
+          cd "$APP_DIR/ios"
+          LATEST=$(app-store-connect get-latest-testflight-build-number "$BUNDLE_ID" 2>/dev/null || echo "0")
+          agvtool new-version -all $(($LATEST + 1)) || true
+
+      - name: Build IPA
+        script: |
+          cd "$APP_DIR/ios"
+          xcode-project build-ipa \
+            --workspace "$XCODE_WORKSPACE" \
+            --scheme "$XCODE_SCHEME" \
+            --config Release \
+            --archive-flags="-destination 'generic/platform=iOS'"
+
+    artifacts:
+      - mobile/ios/build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+
+    publishing:
+      app_store_connect:
+        # Upload to TestFlight automatically after a successful build.
+        auth: integration
+        submit_to_testflight: true
+        # Optional: auto-distribute to a tester group you create in App Store Connect.
+        # beta_groups:
+        #   - "Internal Testers"
+      email:
+        recipients:
+          - you@example.com         # >>> EDIT
+        notify:
+          success: true
+          failure: true
