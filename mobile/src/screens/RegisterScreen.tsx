@@ -5,7 +5,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
-  ActivityIndicator, Alert, KeyboardAvoidingView, Platform,
+  ActivityIndicator, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/RootNavigator';
@@ -13,6 +13,7 @@ import { validateUser } from '../services/api';
 import { useAuthStore } from '../store/authStore';
 import Logo from '../components/Logo';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { appAlert, appAlertError, appAlertSuccess } from '../store/alertStore';
 
 type Props = { navigation: NativeStackNavigationProp<RootStackParamList, 'Register'> };
 
@@ -35,9 +36,9 @@ export default function RegisterScreen({ navigation }: Props) {
   async function handleRegister() {
     
     const id = userId.trim().toUpperCase();
-    if (!id) { Alert.alert('Error', 'Please enter your User ID.'); return; }
+    if (!id) { appAlertError('Error', 'Please enter your User ID.'); return; }
     if (!/^[A-Z0-9]{1,10}$/.test(id)) {
-      Alert.alert('Error', 'User ID must be alphanumeric and max 10 characters.');
+      appAlertError('Error', 'User ID must be alphanumeric and max 10 characters.');
       return;
     }
     setLoading(true);
@@ -60,22 +61,15 @@ export default function RegisterScreen({ navigation }: Props) {
       await completeRegistration(id, res.mobileNo ?? res.mobile ?? '', 'otp_pending');
 
       if (res.devOtp) {
-        Alert.alert('DEV — OTP', `OTP: ${res.devOtp}`, [{ text: 'OK', onPress: () => navigation.navigate('SmsOtp') }]);
+        appAlert('DEV — OTP', `OTP: ${res.devOtp}`, [{ text: 'OK', onPress: () => navigation.navigate('SmsOtp') }], 'info');
       } else {
         navigation.navigate('SmsOtp');
       }
     }else if(res?.errorCode == '421'){
-      //storeId(id);
-      //setStatus('otp_pending');
-      //if (res.mobile) setMaskedMobile(res.mobile);
       await completeRegistration(userId,res?.mobileNo ?? res?.mobile,'submitted');
-      Alert.alert('Alert', res?.errorMsg || 'User is pending for Approval.');
+      appAlert('Alert', res?.errorMsg || 'User is pending for Approval.', undefined, 'warning');
       
     }else if(res?.errorCode == '422'){
-      //storeId(id);
-      //setStatus('otp_pending');
-      //if (res.mobile) setMaskedMobile(res.mobile);
-      //Alert.alert('Alert', res?.errorMsg || 'User is pending for Approval.');
       console.log('in errorcode 422');
       setStatus('registered');
       const mobile = await AsyncStorage.getItem('mobile');
@@ -85,14 +79,14 @@ export default function RegisterScreen({ navigation }: Props) {
       await completeRegistration(userId,mobile!,'registered');
       const status1 = await AsyncStorage.getItem('status');
       console.log('Status1:', status1);
-       Alert.alert('Alert', res?.errorMsg || 'User is registered successfully.', [{ text: 'OK', onPress: () => navigation.navigate('SidToken') }]);
+       appAlertSuccess('Alert', res?.errorMsg || 'User is registered successfully.', () => navigation.navigate('SidToken'));
     }
     else{
-      Alert.alert('Error', res?.errorMsg || 'An error occurred while validating the User ID.');
+      appAlertError('Error', res?.errorMsg || 'An error occurred while validating the User ID.');
     }
     } catch (e: any) {
       console.error('Validation Error:', e);
-      Alert.alert('Error', e?.response?.data?.error || e.message);
+      appAlertError('Error', e?.response?.data?.error || e.message);
     } finally { setLoading(false); }
   }
 

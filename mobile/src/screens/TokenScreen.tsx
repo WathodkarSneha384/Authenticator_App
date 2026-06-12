@@ -6,11 +6,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
-  Animated, Alert, KeyboardAvoidingView, Platform,
+  Animated, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { useAuthStore } from '../store/authStore';
 import { generateToken, remainingSeconds } from '../utils/totp';
 import Logo from '../components/Logo';
+import { appAlert, appAlertConfirm, appAlertError } from '../store/alertStore';
 
 export default function SidTokenScreen() {
   const { seed, userId, reset } = useAuthStore();
@@ -40,9 +41,9 @@ function handleEnterSid() {
   //   return;
   // }
    const id = sid.trim().toUpperCase();
-      if (!id) { Alert.alert('Error', 'Please enter your User ID.'); return; }
+      if (!id) { appAlertError('Error', 'Please enter your User ID.'); return; }
       if (!/^[A-Z0-9]{1,10}$/.test(id)) {
-        Alert.alert('Error', 'SID must be alphanumeric and max 6 characters.');
+        appAlertError('Error', 'SID must be alphanumeric and max 6 characters.');
         return;
       }
 
@@ -210,10 +211,13 @@ useEffect(() => {
         <Text className="text-primary font-semibold">Enter New SID</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity onPress={() => Alert.alert('Logout', 'Clear registration from this device?', [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Clear', style: 'destructive', onPress: reset },
-      ])}>
+      <TouchableOpacity onPress={() => appAlertConfirm(
+        'Logout',
+        'Clear registration from this device?',
+        reset,
+        'Clear',
+        true,
+      )}>
         <Text className="text-gray-400 text-sm">Clear Device Registration</Text>
       </TouchableOpacity>
 

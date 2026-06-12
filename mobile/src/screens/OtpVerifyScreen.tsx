@@ -5,7 +5,7 @@
 import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
-  ActivityIndicator, Alert, KeyboardAvoidingView, Platform,
+  ActivityIndicator, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/RootNavigator';
@@ -14,6 +14,7 @@ import { useAuthStore } from '../store/authStore';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import Logo from '../components/Logo';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { appAlert, appAlertError, appAlertSuccess } from '../store/alertStore';
 
 type Props = { navigation: NativeStackNavigationProp<RootStackParamList, 'SmsOtp'> };
 
@@ -59,8 +60,8 @@ export default function OtpVerifyScreen({ navigation }: Props) {
 
   /* ── submit ── */
   async function handleSubmit() {
-    if (otp.length !== 6) { Alert.alert('Error', 'Please enter the 6-digit OTP.'); return; }
-    if (timer === 0)       { Alert.alert('Expired', 'OTP has expired. Please request a new OTP.'); return; }
+    if (otp.length !== 6) { appAlertError('Error', 'Please enter the 6-digit OTP.'); return; }
+    if (timer === 0)       { appAlertError('Expired', 'OTP has expired. Please request a new OTP.'); return; }
 
     setLoading(true);
     try {
@@ -84,24 +85,20 @@ export default function OtpVerifyScreen({ navigation }: Props) {
       if(res?.status == '00'){
       await completeRegistration(userId!, maskedMobile ?? res?.mobile ?? '', 'submitted');
 
-      Alert.alert('Submitted', 'User Registration submitted successfully.', [
-        { text: 'OK', onPress: () => navigation.navigate('Register') },
-      ]);
+      appAlertSuccess('Submitted', 'User Registration submitted successfully.', () => navigation.navigate('Register'));
     }else if(res?.status == '310')
     {
 
-      Alert.alert('Alert', 'Invalid OTP,please try again.');
+      appAlert('Alert', 'Invalid OTP, please try again.', undefined, 'error');
     }
     if(res?.status == '422'){
       await completeRegistration(userId!, maskedMobile ?? '', 'submitted');
-      Alert.alert('Submitted', res?.message || 'User is already registered.', [
-        { text: 'OK', onPress: () => navigation.navigate('Register') },
-      ]);
+      appAlertSuccess('Submitted', res?.message || 'User is already registered.', () => navigation.navigate('Register'));
     }
    
    
     } catch (e: any) {
-      Alert.alert('Error', e?.response?.data?.error || e.message);
+      appAlertError('Error', e?.response?.data?.error || e.message);
     } finally { setLoading(false); }
   }
 
@@ -132,11 +129,11 @@ export default function OtpVerifyScreen({ navigation }: Props) {
          startTimer();
 
          if (res.devOtp) {
-           Alert.alert('DEV — OTP', `OTP: ${res.devOtp}`);
+           appAlert('DEV — OTP', `OTP: ${res.devOtp}`, undefined, 'info');
          }
        } catch (e: any) {
          console.error('Validation Error:', e);
-         Alert.alert('Error', e?.response?.data?.error || e.message);
+         appAlertError('Error', e?.response?.data?.error || e.message);
        } finally { setResending(false); }
   }
 

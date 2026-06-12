@@ -3,8 +3,9 @@
  * FR-010: If user tries to register again, system checks status and shows Pending.
  */
 import React from 'react';
-import { View, Text, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { useAuthStore } from '../store/authStore';
+import { appAlertConfirm } from '../store/alertStore';
 
 export default function PendingScreen() {
   const { userId, reset } = useAuthStore();
@@ -33,10 +34,13 @@ export default function PendingScreen() {
 
       <TouchableOpacity
         className="border border-danger rounded-xl py-3 px-6"
-        onPress={() => Alert.alert('Reset', 'This will clear your registration. Are you sure?', [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Reset', style: 'destructive', onPress: reset },
-        ])}
+        onPress={() => appAlertConfirm(
+          'Reset',
+          'This will clear your registration. Are you sure?',
+          reset,
+          'Reset',
+          true,
+        )}
       >
         <Text className="text-danger font-semibold">Start Over</Text>
       </TouchableOpacity>

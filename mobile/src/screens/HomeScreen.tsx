@@ -5,11 +5,12 @@
 import React, { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
-  ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView,
+  ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView,
 } from 'react-native';
 import { submitRegistrationKey } from '../services/api';
 import { useAuthStore } from '../store/authStore';
 import Logo from '../components/Logo';
+import { appAlertError } from '../store/alertStore';
 
 export default function RegistrationKeyScreen() {
   const [key, setKey]         = useState('');
@@ -17,14 +18,14 @@ export default function RegistrationKeyScreen() {
   const { userId, completeRegistration } = useAuthStore();
 
   async function handleSubmit() {
-    if (!key.trim()) { Alert.alert('Error', 'Please enter the Registration Key.'); return; }
+    if (!key.trim()) { appAlertError('Error', 'Please enter the Registration Key.'); return; }
     setLoading(true);
     try {
       const res = await submitRegistrationKey(userId!, key.trim());
       //await completeRegistration(res.seed, res.userId);
       // RootNavigator auto-switches to SidToken when appStatus === 'registered'
     } catch (e: any) {
-      Alert.alert('Error', e?.response?.data?.error || e.message);
+      appAlertError('Error', e?.response?.data?.error || e.message);
     } finally { setLoading(false); }
   }
 

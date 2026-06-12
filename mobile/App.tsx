@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { StatusBar } from 'react-native';
 import RootNavigator from './src/navigation/RootNavigator';
 import SplashScreen from './src/components/SplashScreen';
+import AppDialog from './src/components/AppDialog';
 import { useAuthStore } from './src/store/authStore';
 
 const SPLASH_MIN_MS = 1800;
@@ -33,6 +34,7 @@ export default function App() {
     <>
       <StatusBar barStyle="light-content" backgroundColor="#0F2C57" />
       <RootNavigator />
+      <AppDialog />
     </>
   );
 }
