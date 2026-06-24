@@ -12,13 +12,22 @@ import { useAlertStore, AlertVariant } from '../store/alertStore';
 
 const VARIANT_CONFIG: Record<
   AlertVariant,
-  { icon: string; iconColor: string; iconBg: string; accent: string }
+  {
+    icon: string;
+    iconColor: string;
+    iconBg: string;
+    accent: string;
+    titleColor?: string;
+    messageColor?: string;
+  }
 > = {
   error: {
     icon: 'close-circle',
     iconColor: '#EF4444',
     iconBg: '#FEF2F2',
     accent: '#EF4444',
+    titleColor: '#DC2626',
+    messageColor: '#EF4444',
   },
   success: {
     icon: 'checkmark-circle',
@@ -28,9 +37,11 @@ const VARIANT_CONFIG: Record<
   },
   warning: {
     icon: 'alert-circle',
-    iconColor: '#D97706',
-    iconBg: '#FFFBEB',
-    accent: '#D97706',
+    iconColor: '#EAB308',
+    iconBg: '#FEFCE8',
+    accent: '#EAB308',
+    titleColor: '#CA8A04',
+    messageColor: '#A16207',
   },
   info: {
     icon: 'information-circle',
@@ -68,8 +79,14 @@ export default function AppDialog() {
               <Ionicons name={config.icon} size={36} color={config.iconColor} />
             </View>
 
-            <Text style={styles.title}>{title}</Text>
-            {!!message && <Text style={styles.message}>{message}</Text>}
+            <Text style={[styles.title, config.titleColor ? { color: config.titleColor } : null]}>
+              {title}
+            </Text>
+            {!!message && (
+              <Text style={[styles.message, config.messageColor ? { color: config.messageColor } : null]}>
+                {message}
+              </Text>
+            )}
 
             <View style={styles.actions}>
               {buttons.map((btn, i) => {

@@ -64,12 +64,21 @@ function inferVariant(title: string): AlertVariant {
   if (t.includes('error') || t.includes('invalid') || t.includes('expired')) return 'error';
   if (t.includes('submitted') || t.includes('success') || t.includes('registered')) return 'success';
   if (t.includes('reset') || t.includes('logout') || t.includes('clear')) return 'confirm';
-  if (t.includes('pending') || t.includes('alert')) return 'warning';
+  if (t.includes('pending') || t.includes('alert') || t.includes('warning')) return 'warning';
   return 'info';
 }
 
 export function appAlertError(title: string, message: string) {
   appAlert(title, message, undefined, 'error');
+}
+
+export function appAlertWarning(title: string, message: string, onOk?: () => void) {
+  appAlert(
+    title,
+    message,
+    [{ text: 'OK', onPress: onOk }],
+    'warning',
+  );
 }
 
 export function appAlertSuccess(title: string, message: string, onOk?: () => void) {

@@ -153,13 +153,14 @@ useEffect(() => {
           <View className="items-center mb-8">
             <Logo size={96} />
             <Text className="text-2xl font-bold text-primary mt-4">DM Authenticator</Text>
-            <Text className="text-gray-500 mt-1 text-center">
-              Enter the SID displayed on your login screen to generate your token.
-            </Text>
           </View>
 
           <View className="bg-white rounded-2xl px-5 pt-6 pb-7 shadow-md">
-            <Text className="text-sm font-semibold text-gray-700 mb-1">SID</Text>
+            <Text className="text-sm text-gray-500 mb-5 text-center leading-5">
+              Enter the SID displayed on your login screen to generate your token.
+            </Text>
+
+            <Text className="text-base font-semibold text-gray-800 mb-1">SID</Text>
             <TextInput
               className="bg-surface border-2 border-gray-200 rounded-xl px-4 py-4 text-center text-2xl tracking-widest text-gray-900 mb-6"
               value={sid}

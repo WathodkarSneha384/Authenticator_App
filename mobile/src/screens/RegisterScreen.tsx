@@ -13,7 +13,7 @@ import { validateUser } from '../services/api';
 import { useAuthStore } from '../store/authStore';
 import Logo from '../components/Logo';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { appAlert, appAlertError, appAlertSuccess } from '../store/alertStore';
+import { appAlert, appAlertError, appAlertSuccess, appAlertWarning } from '../store/alertStore';
 
 type Props = { navigation: NativeStackNavigationProp<RootStackParamList, 'Register'> };
 
@@ -67,7 +67,7 @@ export default function RegisterScreen({ navigation }: Props) {
       }
     }else if(res?.errorCode == '421'){
       await completeRegistration(userId,res?.mobileNo ?? res?.mobile,'submitted');
-      appAlert('Alert', res?.errorMsg || 'User is pending for Approval.', undefined, 'warning');
+      appAlertWarning('Alert', res?.errorMsg || 'User is pending for Approval.');
       
     }else if(res?.errorCode == '422'){
       console.log('in errorcode 422');
