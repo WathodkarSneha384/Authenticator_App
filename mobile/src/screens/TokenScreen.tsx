@@ -15,16 +15,16 @@ import { appAlert, appAlertConfirm, appAlertError } from '../store/alertStore';
 
 export default function SidTokenScreen() {
   const { seed, userId, reset } = useAuthStore();
-  const [sid, setSid]           = useState('');
-  const [token, setToken]       = useState('');
-  const [timer, setTimer]       = useState(0);
+  const [sid, setSid] = useState('');
+  const [token, setToken] = useState('');
+  const [timer, setTimer] = useState(0);
   const [sidEntered, setSidEntered] = useState(false);
-  const progress                = useRef(new Animated.Value(1)).current;
-  const animRef                 = useRef<Animated.CompositeAnimation | null>(null);
+  const progress = useRef(new Animated.Value(1)).current;
+  const animRef = useRef<Animated.CompositeAnimation | null>(null);
   const currentMinuteRef = useRef(Math.floor(Date.now() / 60000));
   const sidTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const tokenStartTimeRef = useRef<number>(0);
-  
+
 
   // FR-012: auto-generate token when SID is entered
   // function handleEnterSid() {
@@ -34,60 +34,60 @@ export default function SidTokenScreen() {
   //   setSidEntered(true);
   //   refreshToken();
   // }
-  
-function handleEnterSid() {
-  // if (!sid.trim()) {
-  //   Alert.alert('Error', 'Please enter the SID.');
-  //   return;
-  // }
-   const id = sid.trim().toUpperCase();
-      if (!id) { appAlertError('Error', 'Please enter your User ID.'); return; }
-      if (!/^[A-Z0-9]{1,10}$/.test(id)) {
-        appAlertError('Error', 'SID must be alphanumeric and max 6 characters.');
-        return;
-      }
 
-  tokenStartTimeRef.current = Date.now();
-
-  setSidEntered(true);
-  refreshToken();
-}
-
-useEffect(() => {
-  if (!sidEntered) return;
-
-  const tick = setInterval(() => {
-    const elapsed = Math.floor(
-      (Date.now() - tokenStartTimeRef.current) / 1000
-    );
-
-    const rem = Math.max(100 - elapsed, 0);
-
-    setTimer(rem);
-
-    progress.setValue(rem / 100);
-
-    if (rem <= 0) {
-      clearInterval(tick);
-
-      setSidEntered(false);
-      setSid('');
-      setToken('');
-      setTimer(0);
-
+  function handleEnterSid() {
+    // if (!sid.trim()) {
+    //   Alert.alert('Error', 'Please enter the SID.');
+    //   return;
+    // }
+    const id = sid.trim().toUpperCase();
+    if (!id) { appAlertError('Error', 'Please enter your User ID.'); return; }
+    if (!/^[A-Z0-9]{1,10}$/.test(id)) {
+      appAlertError('Error', 'SID must be alphanumeric and max 6 characters.');
       return;
     }
 
-    const currentMinute = Math.floor(Date.now() / 60000);
+    tokenStartTimeRef.current = Date.now();
 
-    if (currentMinute !== currentMinuteRef.current) {
-      currentMinuteRef.current = currentMinute;
-      refreshToken();
-    }
-  }, 1000);
+    setSidEntered(true);
+    refreshToken();
+  }
 
-  return () => clearInterval(tick);
-}, [sidEntered]);
+  useEffect(() => {
+    if (!sidEntered) return;
+
+    const tick = setInterval(() => {
+      const elapsed = Math.floor(
+        (Date.now() - tokenStartTimeRef.current) / 1000
+      );
+
+      const rem = Math.max(100 - elapsed, 0);
+
+      setTimer(rem);
+
+      progress.setValue(rem / 100);
+
+      if (rem <= 0) {
+        clearInterval(tick);
+
+        setSidEntered(false);
+        setSid('');
+        setToken('');
+        setTimer(0);
+
+        return;
+      }
+
+      const currentMinute = Math.floor(Date.now() / 60000);
+
+      if (currentMinute !== currentMinuteRef.current) {
+        currentMinuteRef.current = currentMinute;
+        refreshToken();
+      }
+    }, 1000);
+
+    return () => clearInterval(tick);
+  }, [sidEntered]);
 
   // function refreshToken() {
   //   console.log('Infunction generate token0');
@@ -106,13 +106,13 @@ useEffect(() => {
 
 
   function refreshToken() {
-  console.log('In function generate token');
+    console.log('In function generate token');
 
-  const t = generateToken(sid);
-  console.log('Generated Token:', t);
+    const t = generateToken(sid);
+    console.log('Generated Token:', t);
 
-  setToken(t);
-}
+    setToken(t);
+  }
 
   // useEffect(() => {
   //   if (!sidEntered) return;
@@ -125,23 +125,23 @@ useEffect(() => {
   // }, [sidEntered]);
 
 
-//  useEffect(() => {
-//   if (!sidEntered) return;
+  //  useEffect(() => {
+  //   if (!sidEntered) return;
 
-//   const tick = setInterval(() => {
-//     const rem = remainingSeconds();
-//     setTimer(rem);
+  //   const tick = setInterval(() => {
+  //     const rem = remainingSeconds();
+  //     setTimer(rem);
 
-//     const currentMinute = Math.floor(Date.now() / 60000);
+  //     const currentMinute = Math.floor(Date.now() / 60000);
 
-//     if (currentMinute !== currentMinuteRef.current) {
-//       currentMinuteRef.current = currentMinute;
-//       refreshToken();
-//     }
-//   }, 1000);
+  //     if (currentMinute !== currentMinuteRef.current) {
+  //       currentMinuteRef.current = currentMinute;
+  //       refreshToken();
+  //     }
+  //   }, 1000);
 
-//   return () => clearInterval(tick);
-// }, [sidEntered]);
+  //   return () => clearInterval(tick);
+  // }, [sidEntered]);
 
   const barWidth = progress.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] });
   const barColor = timer > 10 ? '#22C55E' : '#EF4444';
@@ -159,8 +159,9 @@ useEffect(() => {
             <Text className="text-sm text-gray-500 mb-5 text-center leading-5">
               Enter the SID displayed on your login screen to generate your token.
             </Text>
-
-            <Text className="text-base font-semibold text-gray-800 mb-1">SID</Text>
+            <View className="items-center mb-2">
+              <Text className="text-2xl font-bold text-primary mt-4">SID</Text>
+            </View>
             <TextInput
               className="bg-surface border-2 border-gray-200 rounded-xl px-4 py-4 text-center text-2xl tracking-widest text-gray-900 mb-6"
               value={sid}
@@ -188,8 +189,8 @@ useEffect(() => {
   return (
     <View className="flex-1 bg-surface items-center justify-center px-6">
       <Logo size={64} />
-      <Text className="text-gray-500 text-sm mt-4 mb-1">SID: <Text className="font-bold text-primary">{sid}</Text></Text>
-      <Text className="text-gray-500 text-sm mb-6">User ID: <Text className="font-bold text-primary">{userId}</Text></Text>
+      <Text className="text-gray-500 text-lg mt-4 mb-1">SID: <Text className="font-bold text-primary">{sid}</Text></Text>
+      <Text className="text-gray-500 text-lg mb-6">User ID: <Text className="font-bold text-primary">{userId}</Text></Text>
 
       {/* Token display */}
       <View className="bg-white rounded-2xl px-10 py-8 shadow-md items-center mb-6 w-full border-t-4 border-accent">
@@ -212,7 +213,7 @@ useEffect(() => {
         <Text className="text-primary font-semibold">Enter New SID</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity onPress={() => appAlertConfirm(
+      {/* <TouchableOpacity onPress={() => appAlertConfirm(
         'Logout',
         'Clear registration from this device?',
         reset,
@@ -220,9 +221,9 @@ useEffect(() => {
         true,
       )}>
         <Text className="text-gray-400 text-sm">Clear Device Registration</Text>
-      </TouchableOpacity>
+      </TouchableOpacity> */}
 
-      <Text className="text-xs text-gray-400 mt-6 text-center">
+      <Text className="text-base text-gray-400 mt-6 text-center">
         Token generated offline. Works without internet.
       </Text>
     </View>
