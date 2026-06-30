@@ -7,52 +7,33 @@ import {
   Pressable,
   StyleSheet,
 } from 'react-native';
-import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useAlertStore, AlertVariant } from '../store/alertStore';
 
 const VARIANT_CONFIG: Record<
   AlertVariant,
   {
-    icon: string;
-    iconColor: string;
-    iconBg: string;
     accent: string;
     titleColor?: string;
     messageColor?: string;
   }
 > = {
   error: {
-    icon: 'close-circle',
-    iconColor: '#EF4444',
-    iconBg: '#FEF2F2',
     accent: '#EF4444',
     titleColor: '#DC2626',
     messageColor: '#EF4444',
   },
   success: {
-    icon: 'checkmark-circle',
-    iconColor: '#22C55E',
-    iconBg: '#F0FDF4',
     accent: '#22C55E',
   },
   warning: {
-    icon: 'alert-circle',
-    iconColor: '#EAB308',
-    iconBg: '#FEFCE8',
     accent: '#EAB308',
     titleColor: '#CA8A04',
     messageColor: '#A16207',
   },
   info: {
-    icon: 'information-circle',
-    iconColor: '#16A9C2',
-    iconBg: '#ECFEFF',
     accent: '#16A9C2',
   },
   confirm: {
-    icon: 'help-circle',
-    iconColor: '#0F2C57',
-    iconBg: '#F2F7FA',
     accent: '#0F2C57',
   },
 };
@@ -75,10 +56,6 @@ export default function AppDialog() {
           <View style={[styles.stripe, { backgroundColor: config.accent }]} />
 
           <View style={styles.body}>
-            <View style={[styles.iconWrap, { backgroundColor: config.iconBg }]}>
-              <Ionicons name={config.icon} size={36} color={config.iconColor} />
-            </View>
-
             <Text style={[styles.title, config.titleColor ? { color: config.titleColor } : null]}>
               {title}
             </Text>
@@ -157,14 +134,6 @@ const styles = StyleSheet.create({
     paddingTop: 24,
     paddingBottom: 20,
     alignItems: 'center',
-  },
-  iconWrap: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
   },
   title: {
     fontSize: 20,
