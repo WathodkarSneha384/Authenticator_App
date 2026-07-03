@@ -1,6 +1,7 @@
 import axios from 'axios';
-// import CryptoJS from 'crypto-js';
 import jsSHA from 'jssha';
+import { encryptWithKey } from '../utils/encryption';
+import { API_BASE_URL } from '../config/apiConfig';
 
 
 // ─────────────────────────────────────────────────────────────
@@ -17,8 +18,9 @@ export const DEMO_SEED = 'JBSWY3DPEHPK3PXP'; // fixed seed for demo TOTP
 function delay(ms = 800) { return new Promise(r => setTimeout(r, ms)); }
 
 // ── real axios instance for the remote dmCmsService API ──
-const BASE_URL = 'http://223.30.224.244:8182/dmCmsService/rest/endpoints';
-const api = axios.create({ baseURL: BASE_URL, timeout: 10000 });
+const api = axios.create({ baseURL: API_BASE_URL, timeout: 30000 });
+
+let lastEncryptedPassword: string | undefined;
 
 
 // ─────────────────────────────────────────────────────────────
@@ -64,8 +66,14 @@ export const generateTimestamp = () => {
 // ─────────────────────────────────────────────────────────────
 //  Step 1 — Validate User ID
 // ─────────────────────────────────────────────────────────────
-export async function validateUser(userId: string) {
+export async function validateUser(userId: string, userPassword?: string) {
   const timeStamp = generateTimestamp();
+  const encryptedPassword = userPassword
+    ? encryptWithKey(userPassword)
+    : lastEncryptedPassword;
+  if (encryptedPassword && userPassword) {
+    lastEncryptedPassword = encryptedPassword;
+  }
   console.log('Generated Timestamp:', timeStamp);
 
   const checksum = generateChecksum(
@@ -79,10 +87,11 @@ export async function validateUser(userId: string) {
   console.log('Generated Checksum:', checksum);
   console.log('API Request Payload:', {  
     vendor:VENDOR,
-    actionName: 'doUserRegistration',
+    action: 'doUserRegistration',
     uname:USERNAME,
     passwd: PASSWORD,
     userId:userId,
+    userIdPassword: encryptedPassword,
     timeStamp:timeStamp,
     checkSum:checksum, });
   const res = await api.post('/doUserRegistration', {
@@ -91,6 +100,7 @@ export async function validateUser(userId: string) {
     uname:USERNAME,
     passwd: PASSWORD,
     userId:userId,
+    userIdPassword: encryptedPassword,
     timeStamp:timeStamp,
     checkSum:checksum,
   });
@@ -107,12 +117,12 @@ export async function validateUser(userId: string) {
 // ─────────────────────────────────────────────────────────────
 //  Resend OTP
 // ─────────────────────────────────────────────────────────────
-export async function resendOtp(userId: string) {
+export async function resendOtp(userId: string, userPassword?: string) {
   // The real dmCmsService API has no dedicated resend endpoint — resending an
   // OTP is done by re-triggering user registration, which re-sends the OTP to
   // the registered mobile number. Delegate to validateUser so there is a single
   // source of truth for the doUserRegistration call.
-  return validateUser(userId);
+  return validateUser(userId, userPassword);
 }
 
 // ─────────────────────────────────────────────────────────────

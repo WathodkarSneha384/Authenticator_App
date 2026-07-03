@@ -51,7 +51,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       ['mobile', maskedMobile ?? ''],
       ['status', status],
     ]);
-    set({ userId, appStatus: status, maskedMobile: maskedMobile || null });
+    set({ userId, appStatus: status, maskedMobile: maskedMobile ?? '' });
   },
 
   loadFromStorage: async () => {
@@ -69,7 +69,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({
       userId,
       appStatus: status,
-      maskedMobile: mobile,
+      maskedMobile: mobile ?? '',
       ...(seed ? { seed } : {}),
     });
   },

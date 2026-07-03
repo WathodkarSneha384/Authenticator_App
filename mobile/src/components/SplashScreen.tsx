@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, Animated, ActivityIndicator, StatusBar } from 'react-native';
+import { View, Text, Animated, ActivityIndicator, StatusBar, StyleSheet } from 'react-native';
 import Logo from './Logo';
+import { colors } from '../theme/colors';
 
 /**
  * Flash / splash screen shown while the app restores its session.
@@ -18,66 +19,91 @@ export default function SplashScreen() {
   }, [fade, scale]);
 
   return (
-    <View className="flex-1 bg-primary">
-      <StatusBar barStyle="light-content" backgroundColor="#0F2C57" />
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
 
-      {/* Teal glow — centered behind the logo */}
-      <View
-        pointerEvents="none"
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <View
-          style={{
-            width: 260,
-            height: 260,
-            borderRadius: 130,
-            backgroundColor: '#16A9C2',
-            opacity: 0.12,
-            marginBottom: 120,
-          }}
-        />
+      <View pointerEvents="none" style={styles.glowWrap}>
+        <View style={styles.glow} />
       </View>
 
-      {/* Logo + title — vertically centered (offset for bottom footer) */}
-      <View
-        className="flex-1 items-center justify-center px-6"
-        style={{ paddingBottom: 72 }}
-      >
-        <Animated.View
-          style={{
-            opacity: fade,
-            transform: [{ scale }],
-            alignItems: 'center',
-          }}
-        >
+      <View style={styles.center}>
+        <Animated.View style={[styles.logoBlock, { opacity: fade, transform: [{ scale }] }]}>
           <Logo size={130} />
-          <Text
-            className="text-white text-3xl font-bold"
-            style={{ marginTop: 36 }}
-          >
-            DM Authenticator
-          </Text>
-          <View className="h-1 w-12 rounded-full bg-accent mt-4" />
-          <Text className="text-accent-light text-sm mt-3 tracking-wide">
-            Secure offline authentication
-          </Text>
+          <Text style={styles.title}>DM Authenticator</Text>
+          <View style={styles.accentBar} />
+          <Text style={styles.tagline}>Secure offline authentication</Text>
         </Animated.View>
       </View>
 
-      <View className="absolute bottom-16 left-0 right-0 items-center">
-        <ActivityIndicator color="#46C4D8" />
-        <Text className="text-xs mt-3" style={{ color: 'rgba(255,255,255,0.6)' }}>
-          Powered by datavision
-        </Text>
+      <View style={styles.footer}>
+        <ActivityIndicator color={colors.accentLight} />
+        <Text style={styles.footerText}>Powered by datavision</Text>
       </View>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.primary,
+  },
+  glowWrap: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  glow: {
+    width: 260,
+    height: 260,
+    borderRadius: 130,
+    backgroundColor: colors.accent,
+    opacity: 0.12,
+    marginBottom: 120,
+  },
+  center: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+    paddingBottom: 72,
+  },
+  logoBlock: {
+    alignItems: 'center',
+  },
+  title: {
+    color: colors.white,
+    fontSize: 30,
+    fontWeight: '700',
+    marginTop: 36,
+  },
+  accentBar: {
+    height: 4,
+    width: 48,
+    borderRadius: 999,
+    backgroundColor: colors.accent,
+    marginTop: 16,
+  },
+  tagline: {
+    color: colors.accentLight,
+    fontSize: 14,
+    marginTop: 12,
+    letterSpacing: 0.5,
+  },
+  footer: {
+    position: 'absolute',
+    bottom: 64,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+  },
+  footerText: {
+    fontSize: 12,
+    marginTop: 12,
+    color: 'rgba(255,255,255,0.6)',
+  },
+});
