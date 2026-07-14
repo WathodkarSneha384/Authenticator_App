@@ -12,6 +12,7 @@ import { useAuthStore } from '../store/authStore';
 import { generateToken, remainingSeconds } from '../utils/totp';
 import Logo from '../components/Logo';
 import { appAlert, appAlertConfirm, appAlertError } from '../store/alertStore';
+import { APP_VERSION } from '../constants/app';
 
 export default function SidTokenScreen() {
   const { seed, userId, reset } = useAuthStore();
@@ -181,6 +182,10 @@ export default function SidTokenScreen() {
               <Text className="text-white font-bold text-base">Generate Token</Text>
             </TouchableOpacity>
           </View>
+
+          <Text className="text-center text-xs text-gray-400 mt-8">
+            App version {APP_VERSION}
+          </Text>
         </View>
       </KeyboardAvoidingView>
     );
@@ -225,6 +230,9 @@ export default function SidTokenScreen() {
 
       <Text className="text-base text-gray-400 mt-6 text-center">
         Token generated offline. Works without internet.
+      </Text>
+      <Text className="text-center text-xs text-gray-400 mt-4">
+        App version {APP_VERSION}
       </Text>
     </View>
   );

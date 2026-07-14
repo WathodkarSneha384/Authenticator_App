@@ -14,6 +14,7 @@ import { useAuthStore } from '../store/authStore';
 import Logo from '../components/Logo';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { appAlert, appAlertError, appAlertSuccess, appAlertWarning } from '../store/alertStore';
+import { APP_VERSION } from '../constants/app';
 
 type Props = { navigation: NativeStackNavigationProp<RootStackParamList, 'Register'> };
 
@@ -138,6 +139,9 @@ export default function RegisterScreen({ navigation }: Props) {
 
         <Text className="text-center text-xs text-gray-400 mt-8">
           Protected by datavision
+        </Text>
+        <Text className="text-center text-xs text-gray-400 mt-2">
+          App version {APP_VERSION}
         </Text>
       </View>
     </KeyboardAvoidingView>
