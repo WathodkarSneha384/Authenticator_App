@@ -4,13 +4,16 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Brand palette derived from the datavsnus globe logo.
-        primary:  { DEFAULT: '#0F2C57', light: '#1B4F8A', dark: '#091D3B' }, // deep navy
-        accent:   { DEFAULT: '#16A9C2', light: '#46C4D8', dark: '#0E8094' }, // teal / cyan
-        success:  '#22C55E',
-        warning:  '#EAB308',
-        danger:   '#EF4444',
-        surface:  '#F2F7FA',
+        primary: '#0F2C57',
+        'primary-light': '#1B4F8A',
+        'primary-dark': '#091D3B',
+        accent: '#16A9C2',
+        'accent-light': '#46C4D8',
+        'accent-dark': '#0E8094',
+        success: '#22C55E',
+        warning: '#EAB308',
+        danger: '#EF4444',
+        surface: '#F2F7FA',
       },
     },
   },

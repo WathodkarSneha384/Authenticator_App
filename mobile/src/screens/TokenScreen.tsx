@@ -6,50 +6,56 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
-  Animated, KeyboardAvoidingView, Platform,
+  Animated, KeyboardAvoidingView, Platform, StyleSheet,
 } from 'react-native';
 import { useAuthStore } from '../store/authStore';
-import { generateToken, remainingSeconds } from '../utils/totp';
+import { generateToken } from '../utils/totp';
 import Logo from '../components/Logo';
-import { appAlert, appAlertConfirm, appAlertError } from '../store/alertStore';
+import { appAlertConfirm, appAlertError } from '../store/alertStore';
 import { APP_VERSION } from '../constants/app';
+import { colors } from '../theme/colors';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function SidTokenScreen() {
-  const { seed, userId, reset } = useAuthStore();
+  const { userId, maskedMobile, reset, loadFromStorage } = useAuthStore();
+  const [resolvedUserId, setResolvedUserId] = useState<string | null>(userId);
+  const [resolvedMobile, setResolvedMobile] = useState<string | null>(maskedMobile);
   const [sid, setSid] = useState('');
   const [token, setToken] = useState('');
   const [timer, setTimer] = useState(0);
   const [sidEntered, setSidEntered] = useState(false);
   const progress = useRef(new Animated.Value(1)).current;
-  const animRef = useRef<Animated.CompositeAnimation | null>(null);
   const currentMinuteRef = useRef(Math.floor(Date.now() / 60000));
-  const sidTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const tokenStartTimeRef = useRef<number>(0);
 
-
-  // FR-012: auto-generate token when SID is entered
-  // function handleEnterSid() {
-  //   console.log('Entered SID:', sid);
-  //   if (!sid.trim()) { Alert.alert('Error', 'Please enter the SID.'); return; }
-  //   // if (!seed) return;
-  //   setSidEntered(true);
-  //   refreshToken();
-  // }
+  useEffect(() => {
+    (async () => {
+      await loadFromStorage();
+      const [storedUserId, storedMobile] = await Promise.all([
+        AsyncStorage.getItem('userId'),
+        AsyncStorage.getItem('mobile'),
+      ]);
+      setResolvedUserId(storedUserId ?? userId);
+      setResolvedMobile(storedMobile ?? maskedMobile);
+    })();
+  }, [loadFromStorage, userId, maskedMobile]);
 
   function handleEnterSid() {
-    // if (!sid.trim()) {
-    //   Alert.alert('Error', 'Please enter the SID.');
-    //   return;
-    // }
     const id = sid.trim().toUpperCase();
-    if (!id) { appAlertError('Error', 'Please enter your User ID.'); return; }
-    if (!/^[A-Z0-9]{1,10}$/.test(id)) {
+    if (!id) {
+      appAlertError('Error', 'Please enter the SID.');
+      return;
+    }
+    if (!/^[A-Z0-9]{1,6}$/.test(id)) {
       appAlertError('Error', 'SID must be alphanumeric and max 6 characters.');
+      return;
+    }
+    if (!resolvedUserId || !resolvedMobile) {
+      appAlertError('Error', 'User ID or mobile number is missing. Please register again.');
       return;
     }
 
     tokenStartTimeRef.current = Date.now();
-
     setSidEntered(true);
     refreshToken();
   }
@@ -58,29 +64,22 @@ export default function SidTokenScreen() {
     if (!sidEntered) return;
 
     const tick = setInterval(() => {
-      const elapsed = Math.floor(
-        (Date.now() - tokenStartTimeRef.current) / 1000
-      );
-
+      const elapsed = Math.floor((Date.now() - tokenStartTimeRef.current) / 1000);
       const rem = Math.max(100 - elapsed, 0);
 
       setTimer(rem);
-
       progress.setValue(rem / 100);
 
       if (rem <= 0) {
         clearInterval(tick);
-
         setSidEntered(false);
         setSid('');
         setToken('');
         setTimer(0);
-
         return;
       }
 
       const currentMinute = Math.floor(Date.now() / 60000);
-
       if (currentMinute !== currentMinuteRef.current) {
         currentMinuteRef.current = currentMinute;
         refreshToken();
@@ -90,150 +89,275 @@ export default function SidTokenScreen() {
     return () => clearInterval(tick);
   }, [sidEntered]);
 
-  // function refreshToken() {
-  //   console.log('Infunction generate token0');
-  //   const t   = generateToken(sid!);
-  //   console.log('Generated Token:', t);
-  //   const rem = remainingSeconds();
-  //   setToken(t);
-  //   setTimer(rem);
-  //   progress.setValue(rem / 120);
-  //   if (animRef.current) animRef.current.stop();
-  //   animRef.current = Animated.timing(progress, {
-  //     toValue: 0, duration: rem * 1000, useNativeDriver: false,
-  //   });
-  //   animRef.current.start();
-  // }
-
-
   function refreshToken() {
-    console.log('In function generate token');
-
-    const t = generateToken(sid);
+    if (!resolvedUserId || !resolvedMobile) return;
+    const t = generateToken(resolvedUserId, resolvedMobile, sid);
     console.log('Generated Token:', t);
-
     setToken(t);
   }
 
-  // useEffect(() => {
-  //   if (!sidEntered) return;
-  //   const tick = setInterval(() => {
-  //     const rem = remainingSeconds();
-  //     setTimer(rem);
-  //     if (rem === 60) refreshToken(); // new 60-s window
-  //   }, 1000);
-  //   return () => clearInterval(tick);
-  // }, [sidEntered]);
-
-
-  //  useEffect(() => {
-  //   if (!sidEntered) return;
-
-  //   const tick = setInterval(() => {
-  //     const rem = remainingSeconds();
-  //     setTimer(rem);
-
-  //     const currentMinute = Math.floor(Date.now() / 60000);
-
-  //     if (currentMinute !== currentMinuteRef.current) {
-  //       currentMinuteRef.current = currentMinute;
-  //       refreshToken();
-  //     }
-  //   }, 1000);
-
-  //   return () => clearInterval(tick);
-  // }, [sidEntered]);
-
   const barWidth = progress.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] });
-  const barColor = timer > 10 ? '#22C55E' : '#EF4444';
+  const barColor = timer > 10 ? colors.success : colors.danger;
 
   if (!sidEntered) {
     return (
-      <KeyboardAvoidingView className="flex-1 bg-surface" behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <View className="flex-1 justify-center px-6">
-          <View className="items-center mb-8">
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <View style={styles.inner}>
+          <View style={styles.header}>
             <Logo size={96} />
-            <Text className="text-2xl font-bold text-primary mt-4">DM Authenticator</Text>
+            <Text style={styles.title}>DM Authenticator</Text>
           </View>
 
-          <View className="bg-white rounded-2xl px-5 pt-6 pb-7 shadow-md">
-            <Text className="text-sm text-gray-500 mb-5 text-center leading-5">
+          <View style={styles.card}>
+            <Text style={styles.cardDesc}>
               Enter the SID displayed on your login screen to generate your token.
             </Text>
-            <View className="items-center mb-2">
-              <Text className="text-2xl font-bold text-primary mt-4">SID</Text>
-            </View>
+            <Text style={styles.sidLabel}>SID</Text>
             <TextInput
-              className="bg-surface border-2 border-gray-200 rounded-xl px-4 py-4 text-center text-2xl tracking-widest text-gray-900 mb-6"
+              style={styles.input}
               value={sid}
-              onChangeText={setSid}
+              onChangeText={(t) => setSid(t.toUpperCase())}
               maxLength={6}
               placeholder="Enter SID"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={colors.gray400}
               autoCapitalize="characters"
               autoCorrect={false}
             />
 
             <TouchableOpacity
-              className="bg-primary rounded-xl py-4 items-center shadow-sm"
+              style={styles.button}
               onPress={handleEnterSid}
               activeOpacity={0.85}
             >
-              <Text className="text-white font-bold text-base">Generate Token</Text>
+              <Text style={styles.buttonText}>Generate Token</Text>
             </TouchableOpacity>
           </View>
 
-          <Text className="text-center text-xs text-gray-400 mt-8">
-            App version {APP_VERSION}
-          </Text>
+          <Text style={styles.version}>App version {APP_VERSION}</Text>
         </View>
       </KeyboardAvoidingView>
     );
   }
 
   return (
-    <View className="flex-1 bg-surface items-center justify-center px-6">
+    <View style={styles.tokenContainer}>
       <Logo size={64} />
-      <Text className="text-gray-500 text-lg mt-4 mb-1">SID: <Text className="font-bold text-primary">{sid}</Text></Text>
-      <Text className="text-gray-500 text-lg mb-6">User ID: <Text className="font-bold text-primary">{userId}</Text></Text>
+      <Text style={styles.metaText}>
+        SID: <Text style={styles.metaBold}>{sid}</Text>
+      </Text>
+      <Text style={[styles.metaText, styles.metaTextSpaced]}>
+        User ID: <Text style={styles.metaBold}>{resolvedUserId}</Text>
+      </Text>
 
-      {/* Token display */}
-      <View className="bg-white rounded-2xl px-10 py-8 shadow-md items-center mb-6 w-full border-t-4 border-accent">
-        <Text className="text-xs text-gray-400 mb-2 uppercase tracking-widest">Your Token</Text>
-        <Text className="text-5xl font-bold tracking-widest text-accent-dark">{token}</Text>
-        <Text className="text-xs text-gray-400 mt-3">Refreshes automatically</Text>
+      <View style={styles.tokenCard}>
+        <Text style={styles.tokenLabel}>Your Token</Text>
+        <Text style={styles.tokenValue}>{token}</Text>
+        <Text style={styles.tokenHint}>Refreshes automatically</Text>
       </View>
 
-      {/* Countdown bar */}
-      <View className="w-full bg-gray-200 rounded-full h-3 mb-2 overflow-hidden">
-        <Animated.View style={{ width: barWidth, backgroundColor: barColor, height: '100%', borderRadius: 999 }} />
+      <View style={styles.progressTrack}>
+        <Animated.View style={[styles.progressFill, { width: barWidth, backgroundColor: barColor }]} />
       </View>
-      <Text className="text-gray-500 text-sm mb-8">Expires in {timer}s</Text>
+      <Text style={styles.timerText}>Expires in {timer}s</Text>
 
-      {/* Enter new SID */}
       <TouchableOpacity
-        className="border border-primary rounded-xl py-3 px-8 mb-4"
+        style={styles.outlineButton}
         onPress={() => { setSidEntered(false); setSid(''); setToken(''); }}
       >
-        <Text className="text-primary font-semibold">Enter New SID</Text>
+        <Text style={styles.outlineButtonText}>Enter New SID</Text>
       </TouchableOpacity>
 
-      {/* <TouchableOpacity onPress={() => appAlertConfirm(
-        'Logout',
-        'Clear registration from this device?',
-        reset,
-        'Clear',
-        true,
-      )}>
-        <Text className="text-gray-400 text-sm">Clear Device Registration</Text>
-      </TouchableOpacity> */}
+      <TouchableOpacity
+        onPress={() => appAlertConfirm(
+          'Logout',
+          'Clear registration from this device?',
+          reset,
+          'Clear',
+          true,
+        )}
+      >
+        <Text style={styles.clearText}>Clear Device Registration</Text>
+      </TouchableOpacity>
 
-      <Text className="text-base text-gray-400 mt-6 text-center">
+      <Text style={styles.footer}>
         Token generated offline. Works without internet.
       </Text>
-      <Text className="text-center text-xs text-gray-400 mt-4">
-        App version {APP_VERSION}
-      </Text>
+      <Text style={styles.version}>App version {APP_VERSION}</Text>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.surface,
+  },
+  inner: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+  },
+  header: {
+    alignItems: 'center',
+    marginBottom: 32,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: colors.primary,
+    marginTop: 16,
+  },
+  card: {
+    backgroundColor: colors.white,
+    borderRadius: 16,
+    paddingHorizontal: 20,
+    paddingTop: 24,
+    paddingBottom: 28,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+  },
+  cardDesc: {
+    fontSize: 14,
+    color: colors.gray500,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 20,
+  },
+  sidLabel: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: colors.primary,
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  input: {
+    borderWidth: 2,
+    borderColor: colors.gray200,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    fontSize: 24,
+    letterSpacing: 4,
+    textAlign: 'center',
+    color: colors.gray900,
+    backgroundColor: colors.surface,
+    marginBottom: 24,
+  },
+  button: {
+    backgroundColor: colors.primary,
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: 'center',
+  },
+  buttonText: {
+    color: colors.white,
+    fontWeight: '700',
+    fontSize: 16,
+  },
+  tokenContainer: {
+    flex: 1,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+  },
+  metaText: {
+    fontSize: 18,
+    color: colors.gray500,
+    marginTop: 16,
+  },
+  metaTextSpaced: {
+    marginTop: 4,
+    marginBottom: 24,
+  },
+  metaBold: {
+    fontWeight: '700',
+    color: colors.primary,
+  },
+  tokenCard: {
+    backgroundColor: colors.white,
+    borderRadius: 16,
+    paddingHorizontal: 40,
+    paddingVertical: 32,
+    alignItems: 'center',
+    width: '100%',
+    marginBottom: 24,
+    borderTopWidth: 4,
+    borderTopColor: colors.accent,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+  },
+  tokenLabel: {
+    fontSize: 12,
+    color: colors.gray400,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    marginBottom: 8,
+  },
+  tokenValue: {
+    fontSize: 48,
+    fontWeight: '700',
+    letterSpacing: 6,
+    color: colors.accentDark,
+  },
+  tokenHint: {
+    fontSize: 12,
+    color: colors.gray400,
+    marginTop: 12,
+  },
+  progressTrack: {
+    width: '100%',
+    backgroundColor: colors.gray200,
+    borderRadius: 999,
+    height: 12,
+    marginBottom: 8,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 999,
+  },
+  timerText: {
+    fontSize: 14,
+    color: colors.gray500,
+    marginBottom: 32,
+  },
+  outlineButton: {
+    borderWidth: 1,
+    borderColor: colors.primary,
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 32,
+    marginBottom: 16,
+  },
+  outlineButtonText: {
+    color: colors.primary,
+    fontWeight: '600',
+    fontSize: 16,
+  },
+  clearText: {
+    color: colors.gray400,
+    fontSize: 14,
+  },
+  footer: {
+    fontSize: 16,
+    color: colors.gray400,
+    marginTop: 24,
+    textAlign: 'center',
+  },
+  version: {
+    fontSize: 12,
+    color: colors.gray400,
+    marginTop: 16,
+    textAlign: 'center',
+  },
+});

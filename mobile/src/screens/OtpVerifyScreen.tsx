@@ -5,16 +5,17 @@
 import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
-  ActivityIndicator, KeyboardAvoidingView, Platform,
+  ActivityIndicator, KeyboardAvoidingView, Platform, StyleSheet,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/RootNavigator';
-import { validateOtp, resendOtp, validateUser } from '../services/api';
+import { validateOtp, validateUser } from '../services/api';
 import { useAuthStore } from '../store/authStore';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import Logo from '../components/Logo';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { appAlert, appAlertError, appAlertSuccess } from '../store/alertStore';
+import { getApiErrorMessage } from '../utils/apiError';
+import { colors } from '../theme/colors';
 
 type Props = { navigation: NativeStackNavigationProp<RootStackParamList, 'SmsOtp'> };
 
@@ -27,24 +28,22 @@ export default function OtpVerifyScreen({ navigation }: Props) {
   const [timer, setTimer]         = useState(OTP_TTL);
   const timerRef                  = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const { setUserId: storeId,userId, maskedMobile, setStatus,setMaskedMobile ,completeRegistration} = useAuthStore();
-  
+  const { userId, maskedMobile, completeRegistration } = useAuthStore();
 
-   useLayoutEffect(() => {
-  navigation.setOptions({
-    title: '     OTP Verification',
-    headerLeft: () => (
-      <TouchableOpacity
-  onPress={() => navigation.navigate('Register')}
-  style={{ flexDirection: 'row', alignItems: 'center' }}
->
-  <Ionicons name="arrow-back" size={24} color="#000" />
-  {/* <Text style={{ marginLeft: 4 }}>Back</Text> */}
-</TouchableOpacity>
-    ),
-  });
-}, [navigation]);
-  /* ── countdown ── */
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      title: 'OTP Verification',
+      headerLeft: () => (
+        <TouchableOpacity
+          onPress={() => navigation.navigate('Register')}
+          style={styles.headerBack}
+        >
+          <Ionicons name="arrow-back" size={24} color="#fff" />
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation]);
+
   useEffect(() => { startTimer(); return clearTimer; }, []);
 
   function startTimer() {
@@ -58,148 +57,228 @@ export default function OtpVerifyScreen({ navigation }: Props) {
   const mm = Math.floor(timer / 60).toString().padStart(2, '0');
   const ss = (timer % 60).toString().padStart(2, '0');
 
-  /* ── submit ── */
   async function handleSubmit() {
     if (otp.length !== 6) { appAlertError('Error', 'Please enter the 6-digit OTP.'); return; }
-    if (timer === 0)       { appAlertError('Expired', 'OTP has expired. Please request a new OTP.'); return; }
+    if (timer === 0) { appAlertError('Expired', 'OTP has expired. Please request a new OTP.'); return; }
 
     setLoading(true);
     try {
       const res = await validateOtp(userId!, otp);
       console.log('OTP Validation Result:', res);
-      // Demo / fast-track: Stage II already approved → go straight to Registration Key
-      // if (res.status === 'stage2_approved') {
-      //   setStatus('stage2_approved');
-      //   const key = (res as any).devRegKey as string | undefined;
-      //   Alert.alert(
-      //     'Registration Submitted ✓',
-      //     key
-      //       ? `Demo Registration Key:\n\n${key}\n\nYou will need this in the next step.`
-      //       : 'User Registration submitted successfully.\nYou will receive a Registration Key via SMS once approved.',
-      //     [{ text: 'Continue', onPress: () => navigation.navigate('RegistrationKey') }],
-      //   );
-      //   return;
-      // }
 
-      // Normal flow: wait for approval
-      if(res?.status == '00'){
-      await completeRegistration(userId!, maskedMobile ?? res?.mobile ?? '', 'submitted');
-
-      appAlertSuccess('Submitted', 'User Registration submitted successfully.', () => navigation.navigate('Register'));
-    }else if(res?.status == '310')
-    {
-
-      appAlert('Alert', 'Invalid OTP, please try again.', undefined, 'error');
+      if (res?.status == '00') {
+        await completeRegistration(userId!, maskedMobile ?? res?.mobile ?? '', 'submitted');
+        appAlertSuccess('Submitted', 'User Registration submitted successfully.', () => navigation.navigate('Register'));
+      } else if (res?.status == '310') {
+        appAlert('Alert', 'Invalid OTP, please try again.', undefined, 'error');
+      } else if (res?.status == '422') {
+        await completeRegistration(userId!, maskedMobile ?? res?.mobile ?? '', 'registered');
+        appAlertSuccess('Submitted', res?.message || 'User is already registered.', () => navigation.navigate('Register'));
+      }
+    } catch (e: unknown) {
+      appAlertError('Error', getApiErrorMessage(e));
+    } finally {
+      setLoading(false);
     }
-    if(res?.status == '422'){
-      await completeRegistration(userId!, maskedMobile ?? '', 'submitted');
-      appAlertSuccess('Submitted', res?.message || 'User is already registered.', () => navigation.navigate('Register'));
-    }
-   
-   
-    } catch (e: any) {
-      appAlertError('Error', e?.response?.data?.error || e.message);
-    } finally { setLoading(false); }
   }
 
-  /* ── resend ── */
   async function handleResend() {
     setResending(true);
-   try {
-         const res = await validateUser(userId!);
-         console.log('Validation Result:', res);
-   
-        //  if (res.status === 'registered') { storeId(userId!); setStatus('registered'); return; }
-        //  if (res.status === 'submitted' || res.status === 'stage1_approved') {
-        //    Alert.alert('Pending Approval', 'User ID Pending for Approval.'); return;
-        //  }
-        //  if (res.status === 'stage2_approved') {
-        //    storeId(userId!); setStatus('stage2_approved');
-        //    navigation.navigate('RegistrationKey'); return;
-        //  }
-        //  if (res.status === 'rejected') { Alert.alert('Rejected', res.message); return; }
-   
-         // OTP sent — keep the same mobile number captured during
-         // authorization so it never changes on the OTP screen.
-         await completeRegistration(userId!, maskedMobile ?? res.mobileNo ?? res.mobile ?? '', 'otp_pending');
+    try {
+      const res = await validateUser(userId!);
+      console.log('Validation Result:', res);
 
-         // We are already on this screen, so restart the countdown directly
-         // (re-enables Submit) and clear the previously entered OTP.
-         setOtp('');
-         startTimer();
+      await completeRegistration(
+        userId!,
+        maskedMobile ?? res.mobileNo ?? res.mobile ?? '',
+        'otp_pending',
+      );
 
-         if (res.devOtp) {
-           appAlert('DEV — OTP', `OTP: ${res.devOtp}`, undefined, 'info');
-         }
-       } catch (e: any) {
-         console.error('Validation Error:', e);
-         appAlertError('Error', e?.response?.data?.error || e.message);
-       } finally { setResending(false); }
+      setOtp('');
+      startTimer();
+
+      if (res.devOtp) {
+        appAlert('DEV — OTP', `OTP: ${res.devOtp}`, undefined, 'info');
+      }
+    } catch (e: unknown) {
+      console.error('Validation Error:', e);
+      appAlertError('Error', getApiErrorMessage(e));
+    } finally {
+      setResending(false);
+    }
   }
+
+  const canResend = timer === 0;
 
   return (
     <KeyboardAvoidingView
-      className="flex-1 bg-surface"
+      style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <View className="flex-1 justify-center px-6">
-
-        <View className="items-center mb-6">
+      <View style={styles.inner}>
+        <View style={styles.header}>
           <Logo size={84} />
-          <Text className="text-2xl font-bold text-primary mt-4">Enter OTP</Text>
-          <Text className="text-gray-500 mt-1 text-center">
-            {maskedMobile ? `OTP sent to ${maskedMobile}` : 'OTP sent to your registered mobile number.'}
+          <Text style={styles.title}>Enter OTP</Text>
+          <Text style={styles.subtitle}>
+            {maskedMobile
+              ? `OTP sent to ${maskedMobile}`
+              : 'OTP sent to your registered mobile number.'}
           </Text>
         </View>
 
-        <View className="bg-white rounded-2xl px-5 pt-6 pb-7 shadow-md">
-          {/* OTP input — FR-005 FR-006 */}
+        <View style={styles.card}>
           <TextInput
-            className="bg-surface border-2 border-gray-200 rounded-xl px-4 py-4 text-center text-3xl tracking-widest text-gray-900 mb-4"
+            style={styles.otpInput}
             value={otp}
             onChangeText={t => setOtp(t.replace(/[^0-9]/g, ''))}
             placeholder="000000"
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor={colors.gray400}
             keyboardType="numeric"
             maxLength={6}
           />
 
-          {/* Timer — FR-008 */}
-          <View className="items-center mb-6">
-            <Text className={`text-xl font-bold ${timer < 30 ? 'text-danger' : 'text-accent-dark'}`}>
+          <View style={styles.timerBlock}>
+            <Text style={[styles.timer, timer < 30 && styles.timerDanger]}>
               {mm}:{ss}
             </Text>
-            <Text className="text-xs text-gray-400">OTP expires in</Text>
+            <Text style={styles.timerLabel}>OTP expires in</Text>
           </View>
 
-          {/* Submit — FR-007 */}
           <TouchableOpacity
-            className={`bg-primary rounded-xl py-4 items-center mb-3 shadow-sm ${(loading || timer === 0) ? 'opacity-50' : ''}`}
+            style={[styles.button, (loading || timer === 0) && styles.buttonDisabled]}
             onPress={handleSubmit}
             disabled={loading || timer === 0}
             activeOpacity={0.85}
           >
             {loading
-              ? <ActivityIndicator color="#fff" />
-              : <Text className="text-white font-bold text-base">Submit</Text>}
+              ? <ActivityIndicator color={colors.white} />
+              : <Text style={styles.buttonText}>Submit</Text>}
           </TouchableOpacity>
 
-          {/* Resend — FR-009: enabled only after timer hits 0 */}
           <TouchableOpacity
-            className={`rounded-xl py-3 items-center border ${timer === 0 ? 'border-accent' : 'border-gray-200'}`}
+            style={[styles.resendButton, canResend && styles.resendButtonActive]}
             onPress={handleResend}
-            disabled={timer > 0 || resending}
+            disabled={!canResend || resending}
             activeOpacity={0.85}
           >
             {resending
-              ? <ActivityIndicator color="#16A9C2" />
-              : <Text className={`font-semibold ${timer === 0 ? 'text-accent-dark' : 'text-gray-300'}`}>
+              ? <ActivityIndicator color={colors.accent} />
+              : (
+                <Text style={[styles.resendText, canResend && styles.resendTextActive]}>
                   Resend OTP {timer > 0 ? `(available in ${mm}:${ss})` : ''}
-                </Text>}
+                </Text>
+              )}
           </TouchableOpacity>
         </View>
-
       </View>
     </KeyboardAvoidingView>
   );
 }
+
+const styles = StyleSheet.create({
+  headerBack: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: 8,
+  },
+  container: {
+    flex: 1,
+    backgroundColor: colors.surface,
+  },
+  inner: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+  },
+  header: {
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: colors.primary,
+    marginTop: 16,
+  },
+  subtitle: {
+    fontSize: 14,
+    color: colors.gray500,
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  card: {
+    backgroundColor: colors.white,
+    borderRadius: 16,
+    paddingHorizontal: 20,
+    paddingTop: 24,
+    paddingBottom: 28,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+  },
+  otpInput: {
+    borderWidth: 2,
+    borderColor: colors.gray200,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    fontSize: 32,
+    letterSpacing: 8,
+    textAlign: 'center',
+    color: colors.gray900,
+    backgroundColor: colors.surface,
+    marginBottom: 16,
+  },
+  timerBlock: {
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  timer: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: colors.accentDark,
+  },
+  timerDanger: {
+    color: colors.danger,
+  },
+  timerLabel: {
+    fontSize: 12,
+    color: colors.gray400,
+    marginTop: 4,
+  },
+  button: {
+    backgroundColor: colors.primary,
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  buttonDisabled: {
+    opacity: 0.5,
+  },
+  buttonText: {
+    color: colors.white,
+    fontWeight: '700',
+    fontSize: 16,
+  },
+  resendButton: {
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.gray200,
+  },
+  resendButtonActive: {
+    borderColor: colors.accent,
+  },
+  resendText: {
+    fontWeight: '600',
+    color: colors.gray400,
+    fontSize: 14,
+  },
+  resendTextActive: {
+    color: colors.accentDark,
+  },
+});

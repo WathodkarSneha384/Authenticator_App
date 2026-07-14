@@ -1,0 +1,20 @@
+/** Brand palette — use in StyleSheet when NativeWind classes fail on device. */
+export const colors = {
+  primary: '#0F2C57',
+  primaryLight: '#1B4F8A',
+  primaryDark: '#091D3B',
+  accent: '#16A9C2',
+  accentLight: '#46C4D8',
+  accentDark: '#0E8094',
+  surface: '#F2F7FA',
+  white: '#FFFFFF',
+  gray100: '#F3F4F6',
+  gray200: '#E5E7EB',
+  gray400: '#9CA3AF',
+  gray500: '#6B7280',
+  gray700: '#374151',
+  gray900: '#111827',
+  danger: '#EF4444',
+  success: '#22C55E',
+  warning: '#EAB308',
+};

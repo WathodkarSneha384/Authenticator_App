@@ -5,72 +5,149 @@
 import React, { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
-  ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView,
+  ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StyleSheet,
 } from 'react-native';
 import { submitRegistrationKey } from '../services/api';
 import { useAuthStore } from '../store/authStore';
 import Logo from '../components/Logo';
 import { appAlertError } from '../store/alertStore';
+import { colors } from '../theme/colors';
 
 export default function RegistrationKeyScreen() {
   const [key, setKey]         = useState('');
   const [loading, setLoading] = useState(false);
-  const { userId, completeRegistration } = useAuthStore();
+  const { userId } = useAuthStore();
 
   async function handleSubmit() {
     if (!key.trim()) { appAlertError('Error', 'Please enter the Registration Key.'); return; }
     setLoading(true);
     try {
-      const res = await submitRegistrationKey(userId!, key.trim());
-      //await completeRegistration(res.seed, res.userId);
-      // RootNavigator auto-switches to SidToken when appStatus === 'registered'
-    } catch (e: any) {
-      appAlertError('Error', e?.response?.data?.error || e.message);
-    } finally { setLoading(false); }
+      await submitRegistrationKey(userId!, key.trim());
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { error?: string } }; message?: string };
+      appAlertError('Error', err?.response?.data?.error || err.message || 'Something went wrong.');
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
     <KeyboardAvoidingView
-      className="flex-1 bg-surface"
+      style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', padding: 24 }}>
-
-        <View className="items-center mb-8">
+      <ScrollView contentContainerStyle={styles.scroll}>
+        <View style={styles.header}>
           <Logo size={84} />
-          <Text className="text-2xl font-bold text-primary mt-4">Registration Key</Text>
-          <Text className="text-gray-500 mt-1 text-center">
+          <Text style={styles.title}>Registration Key</Text>
+          <Text style={styles.subtitle}>
             Enter the Registration Key sent to your registered mobile number.
           </Text>
         </View>
 
-        {/* DEMO hint */}
-        <View className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-2 mb-6">
-          <Text className="text-blue-700 text-xs font-semibold">DEMO MODE — Key is: DEMO1234</Text>
+        <View style={styles.demoBox}>
+          <Text style={styles.demoText}>DEMO MODE — Key is: DEMO1234</Text>
         </View>
 
-        <Text className="text-sm font-semibold text-gray-700 mb-1">Registration Key</Text>
+        <Text style={styles.label}>Registration Key</Text>
         <TextInput
-          className="bg-white border-2 border-gray-200 rounded-xl px-4 py-4 text-center text-2xl tracking-widest text-gray-900 mb-8"
+          style={styles.input}
           value={key}
           onChangeText={t => setKey(t.toUpperCase())}
           placeholder="DEMO1234"
+          placeholderTextColor={colors.gray400}
           autoCapitalize="characters"
           autoCorrect={false}
           maxLength={8}
         />
 
         <TouchableOpacity
-          className={`bg-success rounded-xl py-4 items-center ${loading ? 'opacity-60' : ''}`}
+          style={[styles.button, loading && styles.buttonDisabled]}
           onPress={handleSubmit}
           disabled={loading}
+          activeOpacity={0.85}
         >
           {loading
-            ? <ActivityIndicator color="#fff" />
-            : <Text className="text-white font-bold text-base">Complete Registration</Text>}
+            ? <ActivityIndicator color={colors.white} />
+            : <Text style={styles.buttonText}>Complete Registration</Text>}
         </TouchableOpacity>
-
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.surface,
+  },
+  scroll: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    padding: 24,
+  },
+  header: {
+    alignItems: 'center',
+    marginBottom: 32,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: colors.primary,
+    marginTop: 16,
+  },
+  subtitle: {
+    fontSize: 14,
+    color: colors.gray500,
+    marginTop: 4,
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  demoBox: {
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    marginBottom: 24,
+  },
+  demoText: {
+    color: '#1D4ED8',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.gray700,
+    marginBottom: 4,
+  },
+  input: {
+    backgroundColor: colors.white,
+    borderWidth: 2,
+    borderColor: colors.gray200,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    fontSize: 24,
+    letterSpacing: 4,
+    textAlign: 'center',
+    color: colors.gray900,
+    marginBottom: 32,
+  },
+  button: {
+    backgroundColor: colors.success,
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: 'center',
+  },
+  buttonDisabled: {
+    opacity: 0.6,
+  },
+  buttonText: {
+    color: colors.white,
+    fontWeight: '700',
+    fontSize: 16,
+  },
+});

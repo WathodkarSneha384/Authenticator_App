@@ -1,149 +1,486 @@
 /**
+
  * RegisterScreen — Step 1
+
  * User enters CBS User ID (max 10 alphanumeric). FR-001 FR-002 FR-003
+
  */
+
 import React, { useState, useEffect } from 'react';
+
 import {
+
   View, Text, TextInput, TouchableOpacity,
-  ActivityIndicator, KeyboardAvoidingView, Platform,
+
+  ActivityIndicator, KeyboardAvoidingView, Platform, StyleSheet,
+
 } from 'react-native';
+
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+
 import { RootStackParamList } from '../navigation/RootNavigator';
+
 import { validateUser } from '../services/api';
+
 import { useAuthStore } from '../store/authStore';
+
 import Logo from '../components/Logo';
+
 import AsyncStorage from '@react-native-async-storage/async-storage';
+
 import { appAlert, appAlertError, appAlertSuccess, appAlertWarning } from '../store/alertStore';
 import { APP_VERSION } from '../constants/app';
+import { getApiErrorMessage } from '../utils/apiError';
+import { colors } from '../theme/colors';
+
+
 
 type Props = { navigation: NativeStackNavigationProp<RootStackParamList, 'Register'> };
 
-export default function RegisterScreen({ navigation }: Props) {
-  const [userId, setUserId]   = useState('');
-  const [loading, setLoading] = useState(false);
-  const { setUserId: storeId, setStatus, setMaskedMobile,completeRegistration, userId: storedUserId, appStatus } = useAuthStore();
 
-  // Once the registration has been submitted (after OTP verification), the
-  // User ID is locked: pre-fill it from the store/storage and prevent editing
-  // so the user cannot register a different User ID.
+
+export default function RegisterScreen({ navigation }: Props) {
+
+  const [userId, setUserId]     = useState('');
+
+  const [password, setPassword] = useState('');
+
+  const [loading, setLoading]   = useState(false);
+
+  const { setStatus, completeRegistration, userId: storedUserId, maskedMobile, appStatus } = useAuthStore();
+
+
+
   const isUserIdLocked = appStatus === 'submitted';
 
+
+
   useEffect(() => {
+
     if (storedUserId) {
+
       setUserId(storedUserId);
+
     }
+
   }, [storedUserId]);
 
+
+
   async function handleRegister() {
-    
+
     const id = userId.trim().toUpperCase();
+
     if (!id) { appAlertError('Error', 'Please enter your User ID.'); return; }
+
     if (!/^[A-Z0-9]{1,10}$/.test(id)) {
+
       appAlertError('Error', 'User ID must be alphanumeric and max 10 characters.');
+
       return;
+
     }
+
+    if (!password.trim()) {
+
+      appAlertError('Error', 'Please enter your Password.');
+
+      return;
+
+    }
+
     setLoading(true);
+
     try {
-      const res = await validateUser(id);
+
+      const res = await validateUser(id, password);
+
       console.log('Validation Result:', res);
 
-      // if (res.status === 'registered') { storeId(id); setStatus('registered'); return; }
-      // if (res.status === 'submitted' || res.status === 'stage1_approved') {
-      //   Alert.alert('Pending Approval', 'User ID Pending for Approval.'); return;
-      // }
-      // if (res.status === 'stage2_approved') {
-      //   storeId(id); setStatus('stage2_approved');
-      //   navigation.navigate('RegistrationKey'); return;
-      // }
-      // if (res.status === 'rejected') { Alert.alert('Rejected', res.message); return; }
 
-      // OTP sent
-      if(res?.errorCode == '00'){
-      await completeRegistration(id, res.mobileNo ?? res.mobile ?? '', 'otp_pending');
 
-      if (res.devOtp) {
-        appAlert('DEV — OTP', `OTP: ${res.devOtp}`, [{ text: 'OK', onPress: () => navigation.navigate('SmsOtp') }], 'info');
+      if (res?.errorCode == '00') {
+
+        await completeRegistration(id, res.mobileNo ?? res.mobile ?? '', 'otp_pending');
+
+        if (res.devOtp) {
+
+          appAlert('DEV — OTP', `OTP: ${res.devOtp}`, [{ text: 'OK', onPress: () => navigation.navigate('SmsOtp') }], 'info');
+
+        } else {
+
+          navigation.navigate('SmsOtp');
+
+        }
+
+      } else if (res?.errorCode == '421') {
+        await completeRegistration(id, res?.mobileNo ?? res?.mobile ?? '', 'submitted');
+      //  const mobile =  await AsyncStorage.getItem('mobile');
+      //   console.log('Mobile from AsyncStorage:', mobile);
+        appAlertWarning('Alert', res?.errorMsg || 'User is pending for Approval.');
+
+      } else if (res?.errorCode == '422') {
+        // const mobile =  await AsyncStorage.getItem('mobile');
+        // console.log('Mobile from AsyncStorage:', mobile);
+         await completeRegistration(id, res.mobileNo ?? res.mobile ?? '', 'registered');
+        appAlertSuccess('Alert', res?.errorMsg || 'User is registered successfully.', () => navigation.navigate('SidToken'));
+
       } else {
-        navigation.navigate('SmsOtp');
+
+        appAlertError('Error', res?.errorMsg || 'An error occurred while validating the User ID.');
+
       }
-    }else if(res?.errorCode == '421'){
-      await completeRegistration(userId,res?.mobileNo ?? res?.mobile,'submitted');
-      appAlertWarning('Alert', res?.errorMsg || 'User is pending for Approval.');
-      
-    }else if(res?.errorCode == '422'){
-      console.log('in errorcode 422');
-      setStatus('registered');
-      const mobile = await AsyncStorage.getItem('mobile');
-      console.log('Mobile:', mobile);
-      const status = await AsyncStorage.getItem('status');
-      console.log('Status:', status);
-      await completeRegistration(userId,mobile!,'registered');
-      const status1 = await AsyncStorage.getItem('status');
-      console.log('Status1:', status1);
-       appAlertSuccess('Alert', res?.errorMsg || 'User is registered successfully.', () => navigation.navigate('SidToken'));
-    }
-    else{
-      appAlertError('Error', res?.errorMsg || 'An error occurred while validating the User ID.');
-    }
-    } catch (e: any) {
+
+    } catch (e: unknown) {
+
       console.error('Validation Error:', e);
-      appAlertError('Error', e?.response?.data?.error || e.message);
-    } finally { setLoading(false); }
+
+      appAlertError('Error', getApiErrorMessage(e));
+
+    } finally {
+
+      setLoading(false);
+
+    }
+
   }
 
-  return (
-    <KeyboardAvoidingView className="flex-1 bg-surface" behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <View className="flex-1 justify-center px-6">
 
-        {/* Brand header */}
-        <View className="items-center mb-10">
+
+  return (
+
+    <KeyboardAvoidingView
+
+      style={styles.container}
+
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+
+    >
+
+      <View style={styles.inner}>
+
+        <View style={styles.header}>
+
           <Logo size={104} />
-          <Text className="text-2xl font-bold text-primary mt-5">DM Authenticator</Text>
-          <Text className="text-gray-500 mt-1">Secure offline authentication</Text>
+
+          <Text style={styles.title}>DM Authenticator</Text>
+
+          <Text style={styles.subtitle}>Secure offline authentication</Text>
+
         </View>
 
-        {/* Form card */}
-        <View className="bg-white rounded-2xl px-5 pt-6 pb-7 shadow-md">
-          <Text className="text-lg font-bold text-primary mb-1">Get started</Text>
-          <Text className="text-gray-500 text-sm mb-5">
+
+
+        <View style={styles.card}>
+
+          <Text style={styles.cardTitle}>Get started</Text>
+
+          <Text style={styles.cardDesc}>
+
             Enter your CBS User ID to begin registration.
+
           </Text>
 
-          <Text className="text-sm font-semibold text-gray-700 mb-1">User ID</Text>
+
+
+          <Text style={styles.label}>User ID</Text>
+
           <TextInput
-            className={`border-2 rounded-xl px-4 py-3 text-lg mb-1 ${isUserIdLocked ? 'bg-gray-100 border-gray-200 text-gray-500' : 'bg-surface border-gray-200 text-gray-900'}`}
+
+            style={[styles.input, isUserIdLocked && styles.inputLocked]}
+
             value={userId}
+
             onChangeText={(t) => setUserId(t.toUpperCase())}
+
             placeholder="Enter User ID"
-            placeholderTextColor="#9CA3AF"
+
+            placeholderTextColor={colors.gray400}
+
             autoCapitalize="characters"
+
             maxLength={10}
+
             autoCorrect={false}
+
             editable={!isUserIdLocked}
+
           />
-          <Text className="text-xs text-gray-400 mb-6">
+
+          <Text style={styles.hint}>
+
             {isUserIdLocked ? 'Your registration is submitted for this User ID.' : 'Max 10 alphanumeric characters'}
+
           </Text>
+
+
+
+          <Text style={styles.label}>Password</Text>
+
+          <TextInput
+
+            style={styles.input}
+
+            value={password}
+
+            onChangeText={setPassword}
+
+            placeholder="Enter Password"
+
+            placeholderTextColor={colors.gray400}
+
+            secureTextEntry
+
+            autoCapitalize="none"
+
+            autoCorrect={false}
+
+          />
+
+          <Text style={[styles.hint, styles.hintLast]}>Your CBS login password</Text>
+
+
 
           <TouchableOpacity
-            className={`bg-primary rounded-xl py-4 items-center shadow-sm ${loading ? 'opacity-60' : ''}`}
+
+            style={[styles.button, loading && styles.buttonDisabled]}
+
             onPress={handleRegister}
+
             disabled={loading}
+
             activeOpacity={0.85}
+
           >
+
             {loading
-              ? <ActivityIndicator color="#fff" />
-              : <Text className="text-white font-bold text-base">Register</Text>}
+
+              ? <ActivityIndicator color={colors.white} />
+
+              : <Text style={styles.buttonText}>Register</Text>}
+
           </TouchableOpacity>
+
         </View>
 
-        <Text className="text-center text-xs text-gray-400 mt-8">
-          Protected by datavision
-        </Text>
-        <Text className="text-center text-xs text-gray-400 mt-2">
-          App version {APP_VERSION}
-        </Text>
+        <Text style={styles.footer}>Protected by datavision</Text>
+        <Text style={styles.version}>App version {APP_VERSION}</Text>
       </View>
+
     </KeyboardAvoidingView>
+
   );
+
 }
+
+
+
+const styles = StyleSheet.create({
+
+  container: {
+
+    flex: 1,
+
+    backgroundColor: colors.surface,
+
+  },
+
+  inner: {
+
+    flex: 1,
+
+    justifyContent: 'center',
+
+    paddingHorizontal: 24,
+
+  },
+
+  header: {
+
+    alignItems: 'center',
+
+    marginBottom: 40,
+
+  },
+
+  title: {
+
+    fontSize: 24,
+
+    fontWeight: '700',
+
+    color: colors.primary,
+
+    marginTop: 20,
+
+  },
+
+  subtitle: {
+
+    fontSize: 14,
+
+    color: colors.gray500,
+
+    marginTop: 4,
+
+  },
+
+  card: {
+
+    backgroundColor: colors.white,
+
+    borderRadius: 16,
+
+    paddingHorizontal: 20,
+
+    paddingTop: 24,
+
+    paddingBottom: 28,
+
+    elevation: 4,
+
+    shadowColor: '#000',
+
+    shadowOffset: { width: 0, height: 2 },
+
+    shadowOpacity: 0.1,
+
+    shadowRadius: 8,
+
+  },
+
+  cardTitle: {
+
+    fontSize: 18,
+
+    fontWeight: '700',
+
+    color: colors.primary,
+
+    marginBottom: 4,
+
+  },
+
+  cardDesc: {
+
+    fontSize: 14,
+
+    color: colors.gray500,
+
+    marginBottom: 20,
+
+  },
+
+  label: {
+
+    fontSize: 14,
+
+    fontWeight: '600',
+
+    color: colors.gray700,
+
+    marginBottom: 4,
+
+  },
+
+  input: {
+
+    borderWidth: 2,
+
+    borderColor: colors.gray200,
+
+    borderRadius: 12,
+
+    paddingHorizontal: 16,
+
+    paddingVertical: 12,
+
+    fontSize: 18,
+
+    color: colors.gray900,
+
+    backgroundColor: colors.surface,
+
+    marginBottom: 4,
+
+  },
+
+  inputLocked: {
+
+    backgroundColor: colors.gray100,
+
+    color: colors.gray500,
+
+  },
+
+  hint: {
+
+    fontSize: 12,
+
+    color: colors.gray400,
+
+    marginBottom: 16,
+
+  },
+
+  hintLast: {
+
+    marginBottom: 24,
+
+  },
+
+  button: {
+
+    backgroundColor: colors.primary,
+
+    borderRadius: 12,
+
+    paddingVertical: 16,
+
+    alignItems: 'center',
+
+  },
+
+  buttonDisabled: {
+
+    opacity: 0.6,
+
+  },
+
+  buttonText: {
+
+    color: colors.white,
+
+    fontWeight: '700',
+
+    fontSize: 16,
+
+  },
+
+  footer: {
+
+    textAlign: 'center',
+
+    fontSize: 12,
+
+    color: colors.gray400,
+
+    marginTop: 32,
+
+  },
+
+  version: {
+
+    textAlign: 'center',
+
+    fontSize: 12,
+
+    color: colors.gray400,
+
+    marginTop: 8,
+
+  },
+
+});
+
+
