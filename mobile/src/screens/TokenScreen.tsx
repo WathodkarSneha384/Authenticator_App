@@ -136,7 +136,7 @@ export default function SidTokenScreen() {
             </TouchableOpacity>
           </View>
 
-          <Text style={styles.version}>App version {APP_VERSION}</Text>
+          <Text style={styles.version}>App version {APP_VERSION_FULL}</Text>
         </View>
       </KeyboardAvoidingView>
     );
