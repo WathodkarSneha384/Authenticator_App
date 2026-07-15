@@ -29,7 +29,7 @@ import Logo from '../components/Logo';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { appAlert, appAlertError, appAlertSuccess, appAlertWarning } from '../store/alertStore';
-import { APP_VERSION } from '../constants/app';
+import { APP_VERSION, APP_VERSION_FULL } from '../constants/app';
 import { getApiErrorMessage } from '../utils/apiError';
 import { colors } from '../theme/colors';
 
@@ -264,7 +264,7 @@ export default function RegisterScreen({ navigation }: Props) {
         </View>
 
         <Text style={styles.footer}>Protected by datavision</Text>
-        <Text style={styles.version}>App version {APP_VERSION}</Text>
+        <Text style={styles.version}>App version {APP_VERSION_FULL}</Text>
       </View>
 
     </KeyboardAvoidingView>

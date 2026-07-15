@@ -12,7 +12,7 @@ import { useAuthStore } from '../store/authStore';
 import { generateToken } from '../utils/totp';
 import Logo from '../components/Logo';
 import { appAlertConfirm, appAlertError } from '../store/alertStore';
-import { APP_VERSION } from '../constants/app';
+import { APP_VERSION, APP_VERSION_FULL } from '../constants/app';
 import { colors } from '../theme/colors';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -185,7 +185,7 @@ export default function SidTokenScreen() {
       <Text style={styles.footer}>
         Token generated offline. Works without internet.
       </Text>
-      <Text style={styles.version}>App version {APP_VERSION}</Text>
+      <Text style={styles.version}>App version {APP_VERSION_FULL}</Text>
     </View>
   );
 }

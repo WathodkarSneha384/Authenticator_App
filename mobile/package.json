@@ -6,7 +6,12 @@
     "android": "react-native run-android",
     "ios": "react-native run-ios",
     "start": "react-native start",
-    "lint": "eslint src"
+    "lint": "eslint src",
+    "version:sync": "node scripts/sync-version.mjs",
+    "version:patch": "node scripts/bump-version.mjs patch",
+    "version:minor": "node scripts/bump-version.mjs minor",
+    "version:major": "node scripts/bump-version.mjs major",
+    "version:code": "node scripts/bump-version.mjs code"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "^1.23.1",
